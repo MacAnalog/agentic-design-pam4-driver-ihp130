@@ -1,0 +1,29 @@
+# python / jupyter
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.pytest_cache/
+.venv/
+.DS_Store
+# notebooks are generated from the paired .py files via jupytext
+notebooks/*.ipynb
+# machine-specific tool locations for the Makefile
+local.mk
+
+# regenerable EDA outputs (gen_layout.py / signoff.py / pex_sim.py / kpex).
+# The FINAL GDS, PNG renders, and converted post-layout netlists directly
+# under layout/out(/pex) ARE tracked so every result reproduces without
+# the layout toolchain installed.
+# kpex working dirs (nomim GDS, lvsdb, oas, rdb):
+layout/out/pex/*/
+# DRC/LVS run dirs (lyrdb, logs, extracted cir):
+layout/out/signoff/
+.kpex_cache/
+# optimizer trial workspaces + NB2 baseline:
+notebooks/nb_opt/
+# stray KLayout-LVS by-products (dumped into cwd):
+*_lay_extracted.cir
+*.lyrdb
+*.log
+# ngspice raw outputs:
+*.raw

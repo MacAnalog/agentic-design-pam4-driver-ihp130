@@ -1,0 +1,23 @@
+[project]
+name = "agentic-design-pam4-driver-ihp130"
+version = "0.1.0"
+description = "PAM-4 SiGe HBT driver in IHP SG13G2: agentic design from netlist to post-layout signoff"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2.0",
+    "matplotlib",
+    "pandas",
+    "pyyaml",
+    "jupytext",
+    "nbclient",
+    "ipykernel",
+    "klayout>=0.30",    # DRC/LVS runners + rendering + GDS inspection
+    "gdsfactory>=9",    # layout generation
+    "ihp-gdsfactory==0.2.7",   # IHP SG13G2 PCells/layers; 2.x drops ihp.cells2 (gen_layout.py)
+    "nevergrad",        # co-optimization loop (notebook 02)
+    "docopt>=0.6.2",    # required by the IHP PDK's run_lvs.py CLI
+    "nbconvert>=7.17.1", # jupytext --execute backend
+]
+
+[tool.uv]
+package = false
