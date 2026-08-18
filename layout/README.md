@@ -28,7 +28,8 @@ signoff.py          DRC + LVS wrapper (per DUT)      -> out/signoff/
 pex_sim.py          kpex 2.5D PEX + pre/post ngspice .op/.ac comparison (KPEX_HALO_UM overrides the tech's 8 um sidewall halo)
 optimize_layout.py  nevergrad loop: gen -> DRC/LVS gate -> PEX -> sim (the block-local v1/v2 loop)
 codesign/           the same loop run THROUGH spicexplorer-optimize (sim_engine: layout) — Alg. 1 of the paper; rounds, record, figures
-compare_layouts.py  v1 defaults vs V2_LAYOUT before/after (the v2 story); codesign/figures.py draws the v2 -> v3 one
+compare_layouts.py  before/after on the PDK render: original v1 vs v3 (before_after.png, default) or vs v2 (--after v2);
+                    codesign/figures.py draws the v2 -> v3 one with changed regions boxed
 render.py           GDS -> PNG (IHP layer colors)
 out/                dut_<d>.gds/.png, dut_<d>_{lvs,kpex,sim}.spice (at FINAL_LAYOUT = v3),
                     signoff/, pex/ (dut_<d>_post.spice, metrics_v3_*.json), pex_report.yaml
@@ -196,8 +197,9 @@ group-delay variation + extracted-rail stability (K-factor, odd-mode)
 before tapeout; 2-row floorplan held in reserve (halves the summing bus →
 ~+1.5 dB more S22 margin) if larger margins are required.
 
-Before/after figure of the v2 optimization: `before_after.png`
-(regenerate with `compare_layouts.py`).
+Before/after figure of the v2 optimization: `before_after_v2.png`
+(regenerate with `compare_layouts.py --after v2`; `before_after.png` is the
+original v1 → v3 comparison, `--after v3`).
 
 ## 2026-08-18 (v3): layout/schematic co-design through the SpiceXplorer platform — ALL 8 SPECS PASS, honestly measured
 
@@ -237,5 +239,7 @@ DRC + LVS PASS on all three DUTs; kpex RC mode (1861 wiring R) reproduces the
 CC scorecard exactly. Margins are thin by construction (S11 is
 device-limited at ≈ −11.4 dB with zero wiring; the S22 floor is the cascode
 junction C at −14.5 dB) — the full budget, the ceiling analysis, the rounds
-table and the figures (`pam4_layout_annotated.png`, `before_after.png`,
-`rounds.png`) are in `codesign/README.md`; notebook 04 reads the record.
+table and the figures (`codesign/pam4_layout_annotated.png`,
+`codesign/before_after.png` = v2 → v3 boxed, `codesign/rounds.png`) are in
+`codesign/README.md`; `before_after.png` here is original v1 → v3 on the PDK
+render; notebook 04 reads the record.

@@ -13,15 +13,19 @@ executed notebooks; every result below reproduces from this repo.
 
 ## The layout journey
 
+Original v1 layout (edge-fed input, 1.8 µm output-bus gap, nx=2 / R_C=70 Ω
+electrical point) → the co-designed layout of record (v3):
+
+![before/after layout: original v1 vs co-designed v3](layout/before_after.png)
+
 The first optimization pass scored only S11/BW/gain/power — and its winner
 (nx=2, R_C=70 Ω) sailed through those while silently **failing S22
 (−8.3 dB) and output swing (2.07 Vpp)**, caught by the full signoff
 (notebook 03). An expert RF layout review + a directed probe ladder
-produced the fix, and the punchline: **once the layout was repaired, the
-electrical optimum returned to the paper's nominal topology** (nx=3,
-R_C=50 Ω) — the odd v1 sizing had been compensating layout parasitics.
-
-![before/after layout](layout/before_after.png)
+produced the v2 fix (`layout/before_after_v2.png` shows v1 → v2), and the
+punchline: **once the layout was repaired, the electrical optimum returned to
+the paper's nominal topology** (nx=3, R_C=50 Ω) — the odd v1 sizing had been
+compensating layout parasitics.
 
 | step | what was learned / changed | effect |
 |---|---|---|
@@ -119,7 +123,7 @@ testbenches/  driver_lib.py — netlist-agnostic benches (schematic AND
 layout/       gen_layout.py (parameterized generator, FINAL_LAYOUT = v3,
               V2_LAYOUT), signoff.py (DRC+LVS, vendored PDK runner),
               pex_sim.py (kpex), optimize_layout.py (block-local v1/v2 loop),
-              LAYOUT_REVIEW.md, before_after.png (v1 -> v2),
+              LAYOUT_REVIEW.md, before_after.png (v1 -> v3; _v2 = v1 -> v2),
               codesign/ (Alg. 1 through spicexplorer-optimize: flow.yaml,
               project_setup.yaml, measure hook, rounds/, results/, figures),
               out/ (final GDS, netlists, PEX, renders)
