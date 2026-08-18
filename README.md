@@ -9,7 +9,10 @@ closes **all eight post-layout specs** — first with a block-local optimizer
 (v2), then by running the paper's **layout/schematic co-design algorithm
 through the SpiceXplorer platform** (`spicexplorer-optimize`,
 `sim_engine: layout`; v3, the layout of record). The audit trail is four
-executed notebooks; every result below reproduces from this repo.
+notebooks plus a self-contained **reviewer report** ([`report/`](report/README.md):
+schematic vs v1 / v2 / v3 layouts through the same benches, DRC/LVS/PEX
+evidence, GDS + netlists, KLayout renders, eyes, tables — `make report`);
+every result below reproduces from this repo.
 
 ## The layout journey
 
@@ -122,13 +125,22 @@ density, ground cage, matching dummies) are tracked in
 | S22 at 50 GHz | < −10 | −14.76 | −9.24 dB ✗ | **−10.72 dB** | ≤ −10 ✅ |
 | Max diff swing | 2.1 Vpp | 2.92 | 2.21 Vpp | **2.26 Vpp** | ≥ 2.1 ✅ |
 | Power | 192 mW | 191 | 179 mW @ 4 V | **190 mW @ 4 V** | ≤ 192 ✅ |
-| 48 GBd PAM-4 eye | Fig. 5 | RLM 0.975 | RLM 0.974, ~0.24 V eyes | **RLM 0.974, ~0.24 V eyes** | open ✅ |
+| 48 GBd PAM-4 eye (200 mV$_{pp}$ in) | Fig. 5 | RLM 0.995, 0.25 V eyes | RLM 0.995, 0.23 V eyes | **RLM 0.995, 0.23 V eyes** | open ✅ |
 | Core area | 0.011 mm² | — | 0.0076 mm² | **0.0069 mm²** (97.6 × 70.5 µm) | — |
 
 S11/S22 are the worst in-band values *including the interpolated 32 / 50 GHz
 band edge* (kpex CC, tech halo 8 µm — the block's default instrument; the
 v2 column is the record re-measured that way, see the v3 section above).
+Eye metrics are read at the eye centre (`report/build_report.py`; the
+notebooks sample at a fixed phase and read RLM ≈ 0.97). All four tiers —
+schematic, first-pass layout, v2, v3 — side by side with the same instrument,
+plus the p/n balance audit and per-tier DRC/LVS/PEX evidence, are in
+[`report/`](report/README.md) (`report/data/tables.md`).
 Both columns through the same `driver_lib` benches (notebook 04 §5):
+
+![48 GBd eyes, all four tiers](report/figs/fig_eye.png)
+
+![first-pass vs co-designed layout, KLayout render](report/figs/fig_layout_b_vs_d.png)
 
 ![v2 vs v3 S-parameters](notebooks/report_figs/sparams_v2_v3_post_layout.png)
 
@@ -151,14 +163,15 @@ collector loads; DRC + LVS clean):
 ![final layout](notebooks/report_figs/pam4_layout_final.png)
 
 All plots regenerate from `notebooks/03_signoff.py`; the executed
-notebooks (committed `.ipynb`) contain every table and figure inline:
+notebooks (`.ipynb` built locally from the paired `.py`, `make notebooks`)
+contain every table and figure inline:
 
 | notebook | contents |
 |---|---|
-| [01_schematic_sizing](notebooks/01_schematic_sizing.ipynb) | DUT schematics, testbenches, nominal sizing, bias/S-param/eye vs the verified reference |
-| [02_layout_in_the_loop](notebooks/02_layout_in_the_loop.ipynb) | gdsfactory generation, DRC/LVS, kpex, co-optimization with the **full 8-spec objective** |
-| [03_signoff](notebooks/03_signoff.ipynb) | DC/tran/AC/eye on schematic **and** post-layout through the *same* benches; master spec table; `emitter_width=0.07` validity proof |
-| [04_codesign_platform](notebooks/04_codesign_platform.ipynb) | the platform co-design record (`layout/codesign/results/`): per-round trial scatter / skip rates, round-by-round scorecard vs the honest baseline, moved knobs, annotated parameterized layout + before/after + rounds strip |
+| [01_schematic_sizing](notebooks/01_schematic_sizing.py) | DUT schematics, testbenches, nominal sizing, bias/S-param/eye vs the verified reference |
+| [02_layout_in_the_loop](notebooks/02_layout_in_the_loop.py) | gdsfactory generation, DRC/LVS, kpex, co-optimization with the **full 8-spec objective** |
+| [03_signoff](notebooks/03_signoff.py) | DC/tran/AC/eye on schematic **and** post-layout through the *same* benches; master spec table; `emitter_width=0.07` validity proof |
+| [04_codesign_platform](notebooks/04_codesign_platform.py) | the platform co-design record (`layout/codesign/results/`): per-round trial scatter / skip rates, round-by-round scorecard vs the honest baseline, moved knobs, annotated parameterized layout + before/after + rounds strip |
 
 ## Repo map
 
@@ -173,8 +186,11 @@ layout/       gen_layout.py (parameterized generator, FINAL_LAYOUT = v3,
               LAYOUT_REVIEW.md, before_after.png (v1 -> v3; _v2 = v1 -> v2),
               codesign/ (Alg. 1 through spicexplorer-optimize: flow.yaml,
               project_setup.yaml, measure hook, rounds/, results/, figures),
-              out/ (final GDS, netlists, PEX, renders)
-notebooks/    jupytext .py sources + executed .ipynb + report_figs/
+              out/ (v3 netlists, PEX, renders; GDS regenerates)
+report/       reviewer report — build_report.py, README.md, figs/, data/
+              (tables + raw sweeps), layout/<tier>/ (GDS + LVS/kpex/post
+              netlists + DRC/LVS logs), schematic/  (make report)
+notebooks/    jupytext .py sources (+ locally built .ipynb) + report_figs/
 results/      committed characterization plots + metrics YAML
 schematics/   xschem schematics (paper Fig. 1 / 2a / 2b)
 docs/         REFERENCE.md — detailed methods, measurement conventions,
@@ -221,6 +237,7 @@ make sync        # uv sync — create/update the Python env
 make verify eye  # schematic benches + PAM-4 eye (results/*)
 make signoff     # layout DRC + LVS on all three DUTs
 make nb03        # execute the signoff notebook (jupytext -> .ipynb)
+make report      # rebuild report/ (all tiers, DRC/LVS/PEX, benches, eyes)
 ```
 
 `make all` runs everything (incl. notebooks 01/02; 02 is the
@@ -242,5 +259,5 @@ Port of the EIC-designer `lumped-broadband-driver` verified reference,
 reproduced with zero delta on all 8 system metrics
 (`results/pam4_results.yaml`). Designed, laid out, verified, and
 re-optimized end-to-end by AI agents (Claude), including an independent
-multi-agent RF layout review; the executed notebooks are the human-facing
-audit trail.
+multi-agent RF layout review; the notebooks and `report/` are the
+human-facing audit trail.

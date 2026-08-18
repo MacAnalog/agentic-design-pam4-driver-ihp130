@@ -1,0 +1,172 @@
+*********************************************************
+*** NGSPICE file created by KLayout-PEX 0.3.12
+*** -----------------------------------------------------
+***     Extraction Engine: KPEX/2.5D
+***     Technology: ihp_sg13g2
+***     Date: 2026-08-18 11:31:28
+*********************************************************
+
+.SUBCKT pam4drv_pam4_lay sub lsbp vcmb lsbn msbp msbn tmsb0 tlsb0 tmsb1 vcasc outp outn vcc
+XQ_1 \$49 msbp \$10 sub npn13G2 Nx=3
+XQ_2 \$50 msbn \$11 sub npn13G2 Nx=3
+XQ_3 \$51 lsbp \$12 sub npn13G2 Nx=3
+XQ_4 \$52 lsbn \$13 sub npn13G2 Nx=3
+XQ_5 \$53 msbp \$14 sub npn13G2 Nx=3
+XQ_6 \$54 msbn \$15 sub npn13G2 Nx=3
+XQ_7 outp vcasc \$49 sub npn13G2 Nx=3
+XQ_8 outn vcasc \$50 sub npn13G2 Nx=3
+XQ_9 outp vcasc \$51 sub npn13G2 Nx=3
+XQ_10 outn vcasc \$52 sub npn13G2 Nx=3
+XQ_11 outp vcasc \$53 sub npn13G2 Nx=3
+XQ_12 outn vcasc \$54 sub npn13G2 Nx=3
+XR_13 vcmb lsbp sub rsil w=0.5u l=2.29u m=1
+XR_14 vcmb lsbn sub rsil w=0.5u l=2.29u m=1
+XR_15 vcmb msbp sub rsil w=0.5u l=2.29u m=1
+XR_16 vcmb msbn sub rsil w=0.5u l=2.29u m=1
+XR_17 tmsb0 \$10 sub rsil w=5u l=0.5u m=1
+XR_18 tmsb0 \$11 sub rsil w=5u l=0.5u m=1
+XR_19 tlsb0 \$12 sub rsil w=5u l=0.5u m=1
+XR_20 tlsb0 \$13 sub rsil w=5u l=0.5u m=1
+XR_21 tmsb1 \$14 sub rsil w=5u l=0.5u m=1
+XR_22 tmsb1 \$15 sub rsil w=5u l=0.5u m=1
+XR_23 outp vcc sub rsil w=1.4u l=8.71u m=1
+XR_24 outn vcc sub rsil w=1.4u l=8.71u m=1
+Cext_1 \$10 \$11 1.26121f
+Cext_2 \$10 \$49 1.33815f
+Cext_3 \$10 \$50 21.8803a
+Cext_4 \$10 lsbp 0.456984a
+Cext_5 \$10 msbn 4.63084a
+Cext_6 \$10 msbp 733.085a
+Cext_7 \$10 tmsb0 604.404a
+Cext_8 \$10 vcasc 18.1384a
+Cext_9 \$10 sub 3.21781f
+Cext_10 \$11 \$49 5.24805a
+Cext_11 \$11 \$50 1.33225f
+Cext_12 \$11 lsbp 0.456984a
+Cext_13 \$11 msbn 705.081a
+Cext_14 \$11 msbp 32.9302a
+Cext_15 \$11 sub 3.83277a
+Cext_16 \$11 tmsb0 599.351a
+Cext_17 \$11 vcasc 11.1851a
+Cext_18 \$11 sub 3.1529f
+Cext_19 \$12 \$13 1.26121f
+Cext_20 \$12 \$51 1.33815f
+Cext_21 \$12 \$52 21.8803a
+Cext_22 \$12 lsbn 2.69733a
+Cext_23 \$12 lsbp 700.957a
+Cext_24 \$12 msbn 1.93351a
+Cext_25 \$12 msbp 30.6663a
+Cext_26 \$12 sub 3.83277a
+Cext_27 \$12 tlsb0 604.404a
+Cext_28 \$12 vcasc 18.1384a
+Cext_29 \$12 sub 3.21596f
+Cext_30 \$13 \$51 5.24805a
+Cext_31 \$13 \$52 1.33225f
+Cext_32 \$13 lsbn 704.368a
+Cext_33 \$13 lsbp 1.82903a
+Cext_34 \$13 msbn 0.712739a
+Cext_35 \$13 msbp 31.1012a
+Cext_36 \$13 sub 3.83277a
+Cext_37 \$13 tlsb0 599.351a
+Cext_38 \$13 vcasc 11.1851a
+Cext_39 \$13 sub 3.1529f
+Cext_40 \$14 \$15 1.26121f
+Cext_41 \$14 \$53 1.33815f
+Cext_42 \$14 \$54 21.8803a
+Cext_43 \$14 msbn 10.1672a
+Cext_44 \$14 msbp 702.761a
+Cext_45 \$14 sub 3.83277a
+Cext_46 \$14 tmsb1 604.404a
+Cext_47 \$14 vcasc 18.1384a
+Cext_48 \$14 sub 3.22592f
+Cext_49 \$15 \$53 5.24805a
+Cext_50 \$15 \$54 1.33225f
+Cext_51 \$15 msbn 710.089a
+Cext_52 \$15 msbp 1.82903a
+Cext_53 \$15 sub 7.54597a
+Cext_54 \$15 tmsb1 599.351a
+Cext_55 \$15 vcasc 11.1851a
+Cext_56 \$15 sub 3.16739f
+Cext_57 \$49 msbp 50.8262a
+Cext_58 \$49 outp 1.40921f
+Cext_59 \$49 sub 16.2674a
+Cext_60 \$49 vcasc 751.275a
+Cext_61 \$49 sub 2.11221f
+Cext_62 \$50 msbn 50.8262a
+Cext_63 \$50 outn 1.38883f
+Cext_64 \$50 outp 18.8477a
+Cext_65 \$50 sub 35.6a
+Cext_66 \$50 vcasc 760.275a
+Cext_67 \$50 sub 2.0932f
+Cext_68 \$51 lsbp 50.8262a
+Cext_69 \$51 outp 1.41363f
+Cext_70 \$51 sub 35.6a
+Cext_71 \$51 vcasc 760.275a
+Cext_72 \$51 sub 2.0932f
+Cext_73 \$52 lsbn 50.8262a
+Cext_74 \$52 outn 1.38883f
+Cext_75 \$52 outp 18.8477a
+Cext_76 \$52 sub 35.6a
+Cext_77 \$52 vcasc 760.275a
+Cext_78 \$52 sub 2.0932f
+Cext_79 \$53 msbp 50.8262a
+Cext_80 \$53 outp 1.41363f
+Cext_81 \$53 sub 35.6a
+Cext_82 \$53 vcasc 760.275a
+Cext_83 \$53 sub 2.0932f
+Cext_84 \$54 msbn 50.8262a
+Cext_85 \$54 outn 1.38883f
+Cext_86 \$54 outp 14.4261a
+Cext_87 \$54 sub 31.567a
+Cext_88 \$54 vcasc 744.688a
+Cext_89 \$54 sub 2.1023f
+Cext_90 lsbn lsbp 2.41112f
+Cext_91 lsbn msbn 492.356a
+Cext_92 lsbn msbp 118.751a
+Cext_93 lsbn sub 1.39107a
+Cext_94 lsbn tlsb0 257.923a
+Cext_95 lsbn tmsb0 11.2534a
+Cext_96 lsbn vcmb 175.481a
+Cext_97 lsbp msbn 2.21499f
+Cext_98 lsbp msbp 141.973a
+Cext_99 lsbp sub 26.2168a
+Cext_100 lsbp tlsb0 247.212a
+Cext_101 lsbp tmsb0 17.3991a
+Cext_102 lsbp vcmb 37.8497a
+Cext_103 msbn msbp 4.00269f
+Cext_104 msbn sub 51.2609a
+Cext_105 msbn tlsb0 29.4636a
+Cext_106 msbn tmsb0 276.22a
+Cext_107 msbn tmsb1 385.008a
+Cext_108 msbn vcmb 57.5408a
+Cext_109 msbp tlsb0 260.488a
+Cext_110 msbp tmsb0 507.245a
+Cext_111 msbp tmsb1 254.018a
+Cext_112 msbp vcmb 8.89208a
+Cext_113 outn outp 7.69684f
+Cext_114 outn sub 1.35408f
+Cext_115 outn vcasc 152.2a
+Cext_116 outn vcc 15.9437a
+Cext_117 outp sub 2.30913f
+Cext_118 outp vcasc 152.2a
+Cext_119 outp vcc 15.9437a
+Cext_120 sub vcasc 440.713a
+Cext_121 sub vcc 672.616a
+Cext_122 sub vcmb 1.08992f
+Cext_123 sub lsbn 5.25605f
+Cext_124 sub lsbp 3.25614f
+Cext_125 sub msbn 6.85622f
+Cext_126 sub msbp 6.35374f
+Cext_127 sub outn 14.0252f
+Cext_128 sub outp 12.3095f
+Cext_129 sub sub 50.4021f
+Cext_130 sub tlsb0 3.62451f
+Cext_131 sub tmsb0 3.62451f
+Cext_132 sub tmsb1 3.62451f
+Cext_133 sub vcasc 7.68566f
+Cext_134 sub vcc 10.4834f
+Cext_135 sub vcmb 11.5065f
+XCdeg_r0 \$10 \$11 cap_cmim w=3.59u l=3.59u
+XCdeg_r1 \$12 \$13 cap_cmim w=3.59u l=3.59u
+XCdeg_r2 \$14 \$15 cap_cmim w=3.59u l=3.59u
+.ENDS pam4drv_pam4_lay

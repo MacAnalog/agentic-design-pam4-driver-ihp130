@@ -5,7 +5,9 @@
 #   make verify     schematic verification benches (results/*.yaml)
 #   make eye        PAM-4 eye simulation (results/pam4_eye*.{yaml,png})
 #   make signoff    layout DRC + LVS on all three DUTs
-#   make notebooks  execute all three notebooks (.py -> .ipynb via jupytext)
+#   make notebooks  execute all four notebooks (.py -> .ipynb via jupytext)
+#   make codesign   one island of the platform co-design loop (paper Alg. 1)
+#   make report     rebuild the reviewer report (report/: figs, data, layout evidence)
 #   make all        verify + eye + signoff + notebooks
 
 # Machine-specific tool locations live in an untracked local.mk
@@ -25,7 +27,7 @@ RUN       = $(ENV) uv run
 # kpex -> ngspice); the committed result used the default of 8.
 NB_BUDGET ?= 8
 
-.PHONY: all sync verify eye signoff notebooks nb01 nb02 nb03 nb04 codesign clean
+.PHONY: all sync verify eye signoff notebooks nb01 nb02 nb03 nb04 codesign report clean
 
 all: verify eye signoff notebooks
 
@@ -64,6 +66,13 @@ ALGO ?= OnePlusOne
 codesign:
 	cd layout/codesign && $(ENV) ./run_round.sh $(ROUND) $(SEED) $(BUDGET) $(ALGO)
 
+# reviewer report: schematic + v1/v2/v3 layouts rebuilt from the generator,
+# DRC/LVS/kpex re-run, every bench re-simulated, KLayout renders, eyes, tables.
+# REPORT_ARGS='--skip-build --nsym 200' reuses report/work/<tier> artifacts.
+REPORT_ARGS ?=
+report:
+	$(RUN) python report/build_report.py $(REPORT_ARGS)
+
 clean:
-	rm -rf notebooks/nb_opt notebooks/*.ipynb layout/out/signoff
+	rm -rf notebooks/nb_opt notebooks/*.ipynb layout/out/signoff report/work
 	find . -name __pycache__ -type d -prune -exec rm -rf {} +

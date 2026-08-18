@@ -147,9 +147,11 @@ hook):
 | **v3 accepted** | 11.9 / 15.0 (+27 %) | 0.05 dB | 1.2° | −39.5 dBc | −11.32 / −10.70 dB |
 
 So the asymmetry is real and doubled — but at the level of 0.05 dB / 1.2° /
-−40 dBc it is far below anything that shows in the eye (RLM 0.974 in both) or
-in the differential S-parameters, and both single-ended output reflections
-improved. The extra outn capacitance is the TopVia2 pads and TM2 stack of the
+−40 dBc it is far below anything that shows in the eye (RLM 0.995 for both
+in `../../report/`, eye openings 0.23 V in both) or in the differential
+S-parameters, and both single-ended output reflections improved. The full
+balance sweeps of all four tiers (schematic, first-pass, v2, v3) are
+`report/figs/fig_balance.png` / `report/data/balance_<tier>.csv`. The extra outn capacitance is the TopVia2 pads and TM2 stack of the
 `out_split` risers, not the bus itself. It is now **scored**: the hook reports
 `pn_gain_imb_db`, `pn_phase_imb_deg`, `cm_leak_dbc`, and `project_setup.yaml`
 carries them as bounds (≤ 0.1 dB / ≤ 2° / ≤ −35 dBc) for round 3 — the r1/r2
@@ -195,6 +197,11 @@ symmetric variant (trim both buses to the union of risers).
   silently drop a metal or a via. Connectivity itself is proved by LVS on the
   same GDS, not by the picture. KLayout has no vector export of its own; its
   native PDK-coloured render is `../out/dut_pam4.png` (`layout/render.py`).
+  **The paper and the reviewer report use KLayout's own render** (headless
+  `klayout.lay.LayoutView` + `sg13g2.lyp`): `../../report/figs/fig_layouts`,
+  `fig_layout_b_vs_d`, and `fig_layout_annotated` (the same `annotate_knobs`
+  overlay, dark palette, on the KLayout image — `report/build_report.py`); the
+  matplotlib vector drawings here remain as the from-GDS cross-check.
 * `before_after.png` — layout of record | accepted point, same scale, changed
   regions boxed and moved knobs listed.
 * `rounds.png` — layout of record | r1 best | r2 accepted strip with scorecards.

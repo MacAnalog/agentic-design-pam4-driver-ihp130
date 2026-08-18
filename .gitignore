@@ -32,3 +32,9 @@ notebooks/nb_opt/
 # co-design runs (per-trial GDS/DRC/LVS/PEX artifacts) — harvested into layout/codesign/results/
 layout/codesign/runs/
 layout/codesign/logs/
+
+# reviewer report scratch (regenerable: make report)
+report/work/
+# the report keeps its own GDS next to the DRC/LVS/PEX evidence
+!report/layout/*/dut_pam4.gds
+!report/layout/*/signoff/*/*.log

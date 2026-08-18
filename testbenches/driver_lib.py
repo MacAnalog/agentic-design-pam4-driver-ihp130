@@ -767,7 +767,7 @@ def tb_ac_balance(dut: str, dut_ref: str, *, drive: str = "msb",
         "wrdata ac.csv s21db s11db",
         "let gpdb = db(2*v(outp))\nlet gndb = db(2*v(outn))\n"
         "let php = ph(v(outp))*180/pi\nlet phn = ph(v(outn))*180/pi\n"
-        "let cmdb = db(v(outp)+v(outn))\nlet ddb = db(v(outp)-v(outn))\n"
+        "let cmdb = db(mag(v(outp)+v(outn))+1e-15)\nlet ddb = db(v(outp)-v(outn))\n"
         f"wrdata {out_csv} gpdb gndb php phn cmdb ddb")
 
 

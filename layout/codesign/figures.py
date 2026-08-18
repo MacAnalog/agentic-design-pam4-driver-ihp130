@@ -130,6 +130,16 @@ def load_params(path: str | None) -> gen_layout.LayoutParams:
 
 
 # ---------------------------------------------------------------- annotation
+# annotation palette: light (vector figures on white) or dark (KLayout's own
+# black-background render, used by report/build_report.py) — use_dark_palette()
+PALETTE = dict(K="#1a1a1a", E="#8b0000", S="#004d99", box="white")
+
+
+def use_dark_palette(on: bool = True) -> None:
+    PALETTE.update(dict(K="#f2f2f2", E="#ff7b7b", S="#7cc0ff", box="#000000") if on
+                   else dict(K="#1a1a1a", E="#8b0000", S="#004d99", box="white"))
+
+
 def _dim(ax, x0, y0, x1, y1, text, color="k", off=(0, 0), fs=7, lw=0.9):
     """A dimension line with arrow heads + label."""
     ax.annotate("", xy=(x1, y1), xytext=(x0, y0),
@@ -137,19 +147,19 @@ def _dim(ax, x0, y0, x1, y1, text, color="k", off=(0, 0), fs=7, lw=0.9):
                                 shrinkA=0, shrinkB=0), zorder=40)
     ax.text((x0 + x1) / 2 + off[0], (y0 + y1) / 2 + off[1], text, fontsize=fs,
             color=color, ha="center", va="center", zorder=41,
-            bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
+            bbox=dict(boxstyle="round,pad=0.15", fc=PALETTE["box"], ec="none", alpha=0.85))
 
 
 def _tag(ax, x, y, text, xt, yt, color="k", fs=7):
     ax.annotate(text, xy=(x, y), xytext=(xt, yt), fontsize=fs, color=color,
                 ha="center", va="center", zorder=41,
-                bbox=dict(boxstyle="round,pad=0.2", fc="white", ec=color, lw=0.6, alpha=0.9),
+                bbox=dict(boxstyle="round,pad=0.2", fc=PALETTE["box"], ec=color, lw=0.6, alpha=0.9),
                 arrowprops=dict(arrowstyle="-", color=color, lw=0.7, shrinkA=0, shrinkB=0))
 
 
 def annotate_knobs(ax, p: gen_layout.LayoutParams, g: dict, structural: bool = True) -> None:
     """Draw every optimizer knob of project_setup.yaml on the render."""
-    K = "#1a1a1a"; E = "#8b0000"; S = "#004d99"          # layout / electrical / structural
+    K, E, S = PALETTE["K"], PALETTE["E"], PALETTE["S"]     # layout / electrical / structural
     Xs, H, half, dcx = g["Xs"], g["H"], g["half"], g["dev_cx"]
     y0, y1 = g["y0"], g["y1"]
     X0, X1 = Xs[0], Xs[1]
@@ -234,7 +244,7 @@ def _diff_boxes(ax, p0: gen_layout.LayoutParams, p1: gen_layout.LayoutParams, g1
     def box(x0, y0, x1, y1, label):
         ax.add_patch(plt.Rectangle((x0, y0), x1 - x0, y1 - y0, fill=False, ec=C, lw=1.4, ls="--", zorder=50))
         ax.text(x0, y1 + 0.4, label, color=C, fontsize=7, ha="left", va="bottom", zorder=51,
-                bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
+                bbox=dict(boxstyle="round,pad=0.15", fc=PALETTE["box"], ec="none", alpha=0.85))
     yp, yn = g1["y_outP"], g1["y_outN"]
     if (p0.bus_trim, p0.out_split, p0.out_gap, p0.out_w) != (p1.bus_trim, p1.out_split, p1.out_gap, p1.out_w):
         xs = [v for r in g1["bus_x"].values() for v in r]

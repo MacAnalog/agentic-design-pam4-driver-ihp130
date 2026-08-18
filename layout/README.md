@@ -31,8 +31,10 @@ codesign/           the same loop run THROUGH spicexplorer-optimize (sim_engine:
 compare_layouts.py  before/after on the PDK render: original v1 vs v3 (before_after.png, default) or vs v2 (--after v2);
                     codesign/figures.py draws the v2 -> v3 one with changed regions boxed
 render.py           GDS -> PNG (IHP layer colors)
-out/                dut_<d>.gds/.png, dut_<d>_{lvs,kpex,sim}.spice (at FINAL_LAYOUT = v3),
+out/                dut_<d>.png, dut_<d>_{lvs,kpex,sim}.spice (at FINAL_LAYOUT = v3),
                     signoff/, pex/ (dut_<d>_post.spice, metrics_v3_*.json), pex_report.yaml
+                    (GDS is git-ignored — it regenerates byte-for-byte from gen_layout.py; the
+                    reviewer copies of the v1/v2/v3 GDS live in ../report/layout/<tier>/)
 ```
 
 Run (uv env from the repo root; tool locations per the top-level README's
@@ -243,3 +245,12 @@ table and the figures (`codesign/pam4_layout_annotated.png`,
 `codesign/before_after.png` = v2 → v3 boxed, `codesign/rounds.png`) are in
 `codesign/README.md`; `before_after.png` here is original v1 → v3 on the PDK
 render; notebook 04 reads the record.
+
+**Reviewer evidence.** `../report/` (rebuilt by `make report`) regenerates
+v1 (original floorplan, nominal sizing), v2 and v3 from `gen_layout.py`,
+re-runs DRC / LVS / kpex on each, re-simulates every bench (S11/S21/S22 at
+`dec 100`, p/n balance, DC transfer, 48 GBd eyes) alongside the schematic,
+and keeps the GDS + LVS/kpex/post-layout netlists + signoff logs per tier
+next to the tables and KLayout renders. The p/n matching audit of the
+v3 floorplan (asymmetric `out_split` riser stacks: 0.05 dB / 1.2° / −39.5 dBc
+to 48 GHz vs 0.03 dB / 0.5° / −46.5 dBc for v2) is in `codesign/README.md`.

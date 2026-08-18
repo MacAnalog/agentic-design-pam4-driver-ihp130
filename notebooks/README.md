@@ -1,7 +1,8 @@
 # Case-study notebooks
 
 Authored as **jupytext percent-format `.py` sources** (the `.py` files are
-the single source of truth; the committed `.ipynb` are executed outputs).
+the single source of truth; the `.ipynb` are generated/executed locally and
+are git-ignored — build them with `make nb01 nb02 nb03 nb04`).
 
 | Source | Notebook | Content |
 |---|---|---|
@@ -11,7 +12,7 @@ the single source of truth; the committed `.ipynb` are executed outputs).
 | `04_codesign_platform.py` | `04_codesign_platform.ipynb` | the layout/schematic co-design record produced *through the SpiceXplorer platform* (`layout/codesign/results/`): trials per round (status, feasibility, skip rate), scorecard per round vs the honest baseline (`results/baseline_r2_instrument.json`) and the paper, moved knobs vs the layout of record, and the annotated / before-after / rounds figures. Read-only — nothing re-runs the optimizer (`layout/codesign/README.md` says how) |
 
 Build / re-execute (uv env; `PDK_ROOT` set per the top-level README —
-or just `make nb01 nb02 nb03` from the repo root):
+or just `make nb01 nb02 nb03 nb04` from the repo root):
 
 ```sh
 uv run jupytext --sync 01_schematic_sizing.py     # .py <-> .ipynb pairing
@@ -39,3 +40,8 @@ uv run jupytext --to notebook --execute 03_signoff.py
 It reuses the best-trial PEX netlist (`layout/out/pex/dut_pam4_best_post.spice`,
 copied from `nb_opt/pam4_best/`); regenerate it via notebook 02 or
 `layout/pex_sim.py` if absent.
+
+For a reviewer-facing, self-contained summary of every simulation (schematic
+vs v1 / v2 / v3 layouts: S-parameters, balance, DC, eyes, DRC/LVS/PEX
+evidence, GDS + netlists) see [`../report/`](../report/README.md)
+(`make report` rebuilds it).
