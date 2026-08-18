@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
-"""Before/after layout comparison figure for the v2 resize.
+"""Before/after layout comparison figure (PDK render, annotated callouts).
 
-Regenerates the pam4 DUT at the notebook-02 v1 point (nx=2, R_C=70 on the
-original edge-fed floorplan — reconstructed via the LayoutParams defaults)
-and at the signed-off final point (`gen_layout.FINAL_LAYOUT`), renders
-both, and composes the annotated side-by-side written next to this script
-as ``before_after.png``.
+BEFORE is always the ORIGINAL layout — the notebook-02 v1 point (nx=2, R_C=70
+on the original edge-fed floorplan, reconstructed via the LayoutParams
+defaults). AFTER is selectable:
 
-    PDK_ROOT=~/local/pdks python compare_layouts.py
+    --after v3   (default) the co-design accepted point `gen_layout.FINAL_LAYOUT`
+                 -> before_after.png
+    --after v2   the 2026-08-09 block-local point `gen_layout.V2_LAYOUT`
+                 -> before_after_v2.png
+
+(The v2 -> v3 comparison with the changed regions boxed is
+codesign/figures.py before-after.)
+
+    PDK_ROOT=~/local/pdks python compare_layouts.py [--after v2|v3]
 """
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 import tempfile
@@ -42,7 +49,24 @@ ANNOT = {
         ("nx=2 HBTs\n(tail capped at 12 mA\n-> swing needs R_C=70\n-> S22 mismatch)",
          (0.475, 0.52), (0.62, 0.62)),
     ],
-    "after": [
+    "after_v3": [
+        ("center-fed H-tree (v2), MSB rows\ninnermost; cell order M0|M1|L0:\n"
+         "the MSB input bus spans 2 cells,\nnot 3 (S11 −0.2 dB)",
+         (0.50, 0.69), (0.05, 0.94)),
+        ("outn on TopMetal2, outp on TopMetal1;\nper-net bus extents (bus_trim): each\n"
+         "bus covers only its own risers + R_C\n(−16 um TM1, shorter outp||outn run)",
+         (0.60, 0.235), (0.035, 0.115)),
+        ("substrate taps on Metal1 straight\nto the ring — no Metal3 sub bus\n"
+         "under the output risers",
+         (0.628, 0.30), (0.70, 0.13)),
+        ("nx=3 @ 15.9 mA, R_C 46.5, R_E 3.24,\nC_deg 18.5 fF, V_casc 3.31:\n"
+         "found by the platform search\n(160 trials, 4 islands, round 2)",
+         (0.83, 0.55), (0.66, 0.60)),
+        ("cascode-collector tab (c_strip=2)\nkept off the PyCell's M2 emitter\n"
+         "plate; out_gap 6.37 (halo-honest)",
+         (0.285, 0.395), (0.045, 0.50)),
+    ],
+    "after_v2": [
         ("center-fed H-tree:\nR_B on centreline, LSB buses\nshrink to short stubs,\n"
          "zero M0/M1 skew", (0.50, 0.885), (0.06, 0.94)),
         ("Metal4 buses, MSB rows innermost,\n3 um pair gap, Metal2 base drops",
@@ -61,17 +85,33 @@ TITLES = {
     "before": ("BEFORE — notebook-02 v1 point",
                "nx=2, R_C=70 $\\Omega$, 12 mA  |  107.8 x 67.6 um\n"
                "S22 −8.3 dB ✗   swing 2.07 Vpp ✗   S11 −10.2 ✓"),
-    "after": ("AFTER — final signed-off point",
-              "nx=3, R_C=50 $\\Omega$, 15 mA  |  99.6 x 75.8 um\n"
-              "ALL 8 SPECS PASS:  S22 −10.14   swing 2.21   S11 −10.03"),
+    "after_v2": ("AFTER — v2, block-local optimizer + RF review (2026-08-09)",
+                 "nx=3, R_C=50 $\\Omega$, 15 mA  |  99.6 x 75.8 um\n"
+                 "8 specs on the dec-20 grid: S22 −10.14  swing 2.21  S11 −10.03"
+                 "  (band edges: −9.24 / −9.94 ✗)"),
+    "after_v3": ("AFTER — v3, co-designed through the SpiceXplorer platform (Alg. 1)",
+                 "nx=3, R_C=46.5 $\\Omega$, 15.9 mA  |  97.6 x 70.5 um (6880 um2)\n"
+                 "ALL 8 SPECS at the band edges:  S11 −10.05   S22 −10.72   swing 2.26   190 mW"),
 }
+SUPTITLE = {
+    "after_v2": "PAM-4 driver layout — original v1 point vs the v2 full-spec resize + RF layout fixes (IHP SG13G2, pam4 DUT)",
+    "after_v3": "PAM-4 driver layout — original v1 point vs the layout/schematic co-design accepted point (IHP SG13G2, pam4 DUT)",
+}
+AFTER_PARAMS = {"after_v2": lambda: gen_layout.V2_LAYOUT,
+                "after_v3": lambda: gen_layout.FINAL_LAYOUT}
+OUTNAME = {"after_v2": "before_after_v2.png", "after_v3": "before_after.png"}
 
 
 def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--after", choices=["v2", "v3"], default="v3")
+    a = ap.parse_args()
+    after = f"after_{a.after}"
     with tempfile.TemporaryDirectory() as tmp:
         pngs = {}
         for tag, params in (("before", V1),
-                            ("after", gen_layout.FINAL_LAYOUT)):
+                            (after, AFTER_PARAMS[after]())):
             gen_layout.generate("pam4", gen_layout.LayoutParams(**params),
                                 os.path.join(tmp, tag))
             pngs[tag] = os.path.join(tmp, f"{tag}.png")
@@ -82,7 +122,7 @@ def main() -> None:
         kw_box = dict(boxstyle="round,pad=0.35", fc="#ffe9a8",
                       ec="#c8a03c", alpha=0.95)
         kw_arr = dict(arrowstyle="->", color="#ffd75e", lw=1.8)
-        for ax, tag in zip(axes, ("before", "after")):
+        for ax, tag in zip(axes, ("before", after)):
             img = mpimg.imread(pngs[tag])
             H, W = img.shape[0], img.shape[1]
             ax.imshow(img)
@@ -95,11 +135,9 @@ def main() -> None:
                 ax.annotate(text, xy=(xa * W, ya * H),
                             xytext=(xt * W, yt * H), fontsize=8.5,
                             bbox=kw_box, arrowprops=kw_arr)
-        fig.suptitle("PAM-4 driver layout — before vs after the full-spec "
-                     "resize + RF layout optimization (IHP SG13G2, pam4 DUT)",
-                     color="w", fontsize=14, y=0.995)
+        fig.suptitle(SUPTITLE[after], color="w", fontsize=14, y=0.995)
         fig.tight_layout(rect=(0, 0, 1, 0.97))
-        out = os.path.join(HERE, "before_after.png")
+        out = os.path.join(HERE, OUTNAME[after])
         fig.savefig(out, dpi=110, facecolor=fig.get_facecolor(),
                     bbox_inches="tight")
         # palette-quantize: flat-colour layout render, ~4x smaller in git

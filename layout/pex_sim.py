@@ -61,9 +61,15 @@ def parse_subckt_ports(path: str) -> tuple[str, list[str]]:
     return m.group(1), m.group(2).split()
 
 
-def convert_pex_netlist(pex_path: str, out_path: str) -> tuple[str, list[str]]:
+def convert_pex_netlist(pex_path: str, out_path: str,
+                        cap: tuple[str, str, float] | None = None
+                        ) -> tuple[str, list[str]]:
     """kpex output -> ngspice-runnable subckt: Q/R/C device cards become
-    X-cards on the PDK subckt models; parasitic R/C cards pass through."""
+    X-cards on the PDK subckt models; parasitic R/C cards pass through.
+
+    ``cap`` = (w_arg, l_arg, re_w) for the MIM re-insertion when the sim
+    netlist is not next to the GDS (the co-design flow: derived from the
+    candidate's LayoutParams by ``cap_reinsert_args``)."""
     raw = open(pex_path).read()
     raw = re.sub(r"\n\+\s*", " ", raw)          # join continuations
     name, ports = None, []
@@ -111,27 +117,40 @@ def convert_pex_netlist(pex_path: str, out_path: str) -> tuple[str, list[str]]:
                 f"w={kv.get('w', '1')}u l={kv.get('l', '1')}u")
         else:
             lines_out.append(ls)   # parasitic R/C card or comment
-    _reinsert_caps(lines_out, pex_path)
+    _reinsert_caps(lines_out, pex_path, cap)
     with open(out_path, "w") as f:
         f.write("\n".join(lines_out) + "\n")
     assert name is not None
     return name, ports
 
 
-def _reinsert_caps(lines_out: list[str], pex_path: str) -> None:
+def cap_reinsert_args(params) -> tuple[str, str, float]:
+    """(w_arg, l_arg, re_w) for ``convert_pex_netlist(cap=...)`` straight from
+    a ``gen_layout.LayoutParams`` (no netlist file needed)."""
+    import gen_layout as g
+    w_eff = g.snap(g.cap_drawn_w(params.cdeg_ff) + g.CMIM_EXT)
+    return (f"w={w_eff:g}u", f"l={w_eff:g}u", float(params.re_w))
+
+
+def _reinsert_caps(lines_out: list[str], pex_path: str,
+                   cap: tuple[str, str, float] | None = None) -> None:
     """Re-add the intentional Cdeg cap_cmim devices dropped by the MIM-less
     kpex run. Each cap bridges the two emitter nets of one cell — found as
     the two RE rsil devices (widest rsil) sharing a common (tail) net."""
-    dut = re.search(r"pam4drv_(\w+?)_lay", pex_path).group(1)
-    sim = open(os.path.join(OUT, f"dut_{dut}_sim.spice")).read()
-    cap_m = re.findall(r"^XCdeg\S*\s+\S+\s+\S+\s+cap_cmim\s+(w=\S+)\s+(l=\S+)",
-                       sim, re.MULTILINE)
-    rew_m = re.findall(r"^XRRE\S+\s+\S+\s+\S+\s+\S+\s+rsil\s+w=(\S+?)u",
-                       sim, re.MULTILINE)
-    if not cap_m or not rew_m:
-        return
-    w_arg, l_arg = cap_m[0]
-    re_w = float(rew_m[0])
+    if cap is None:
+        dut = re.search(r"pam4drv_(\w+?)_lay", pex_path).group(1)
+        sim = open(os.path.join(OUT, f"dut_{dut}_sim.spice")).read()
+        cap_m = re.findall(
+            r"^XCdeg\S*\s+\S+\s+\S+\s+cap_cmim\s+(w=\S+)\s+(l=\S+)",
+            sim, re.MULTILINE)
+        rew_m = re.findall(r"^XRRE\S+\s+\S+\s+\S+\s+\S+\s+rsil\s+w=(\S+?)u",
+                           sim, re.MULTILINE)
+        if not cap_m or not rew_m:
+            return
+        w_arg, l_arg = cap_m[0]
+        re_w = float(rew_m[0])
+    else:
+        w_arg, l_arg, re_w = cap
     res = []
     for line in lines_out:
         m = re.match(r"X\S+\s+(\S+)\s+(\S+)\s+\S+\s+rsil\s+w=(\S+?)u", line)
@@ -184,6 +203,10 @@ def wrap_layout_dut(dut: str, subckt_path: str) -> str:
     lines.append("Vsub sub 0 DC 0")
     lines.append(f".ends pam4drv_{dut}")
     lines.append(f'.include "{os.path.abspath(subckt_path)}"')
+    # kpex RC / R modes leave floating R-islands (split nets) -> singular
+    # matrix without a shunt conductance to ground
+    if any(l[:1] == "R" for l in open(subckt_path)):
+        lines.append(".options rshunt=1e10")
     lines.append('.lib "cornerRES.lib" res_typ')
     lines.append('.lib "cornerCAP.lib" cap_typ')
     return "\n".join(lines) + "\n"
@@ -233,6 +256,8 @@ def run_kpex(dut: str, mode: str = "CC") -> str:
     cmd = [KPEX, "--pdk", "ihp-sg13g2", "--gds", gds, "--cell", cell,
            "--schematic", schem, "--2.5D", "--mode", mode,
            "--out_dir", out_dir]
+    if os.environ.get("KPEX_HALO_UM"):      # sidewall halo override (kpex --halo)
+        cmd += ["--halo", os.environ["KPEX_HALO_UM"]]
     r = subprocess.run(cmd, env=env, capture_output=True, text=True)
     spice = os.path.join(out_dir, f"dut_{dut}_nomim__{cell}",
                          f"{cell}_k25d_pex_netlist.spice")
@@ -320,7 +345,9 @@ def ac_metrics(dut: str, subckt_path: str, *, drive: str = "msb",
                                  [f[i + 1], f[i]]))
             break
     m32 = f <= 32e9
-    s11w = float(s11[m32].max())
+    # worst S11 in band INCLUDING the exact 32 GHz edge (the dec-20 grid's
+    # last in-band point is 31.62 GHz)
+    s11w = float(max(s11[m32].max(), np.interp(32e9, f, s11)))
     mi = re.search(r"i\(vcc\)\s*=\s*([-\d.e+]+)", log, re.IGNORECASE)
     vcc_v = dict(BIASES, **(biases or {}))["vcc"]
     p_mw = abs(float(mi.group(1))) * vcc_v * 1e3 if mi else float("nan")

@@ -12,19 +12,29 @@ ecosystem.
 | `msb` | 2 | 8 HBT + 8 R + 2 C | 77.6 x 60.1 um (4665 um2) | PASS | PASS |
 | `pam4` | M0\|L0\|M1 | 12 HBT + 12 R + 3 C | 116.2 x 62.9 um (7311 um2) | PASS | PASS |
 
+(defaults = the v1 floorplan; the **layout of record is `gen_layout.FINAL_LAYOUT`
+= v3, 97.6 × 70.5 µm / 6880 µm², co-designed through the SpiceXplorer
+platform — see the v3 section at the end and `codesign/README.md`).
+
 Signoff: KLayout DRC (`--no_density`, geometrically clean) + KLayout LVS
 ("Netlists match") through the PDK's own decks, per DUT.
 
 ## Files
 
 ```
-gen_layout.py       LayoutParams (25 free constants) -> GDS + netlists
+gen_layout.py       LayoutParams (30 free constants + 5 structural INT options) -> GDS + netlists
+                    FINAL_LAYOUT/FINAL_BIASES = v3 (layout of record); V2_LAYOUT/V2_BIASES = the 2026-08-09 v2 point
 signoff.py          DRC + LVS wrapper (per DUT)      -> out/signoff/
-pex_sim.py          kpex 2.5D PEX + pre/post ngspice .op/.ac comparison
-optimize_layout.py  nevergrad loop: gen -> DRC/LVS gate -> PEX -> sim
+pex_sim.py          kpex 2.5D PEX + pre/post ngspice .op/.ac comparison (KPEX_HALO_UM overrides the tech's 8 um sidewall halo)
+optimize_layout.py  nevergrad loop: gen -> DRC/LVS gate -> PEX -> sim (the block-local v1/v2 loop)
+codesign/           the same loop run THROUGH spicexplorer-optimize (sim_engine: layout) — Alg. 1 of the paper; rounds, record, figures
+compare_layouts.py  before/after on the PDK render: original v1 vs v3 (before_after.png, default) or vs v2 (--after v2);
+                    codesign/figures.py draws the v2 -> v3 one with changed regions boxed
 render.py           GDS -> PNG (IHP layer colors)
-out/                dut_<d>.gds/.png, dut_<d>_{lvs,kpex,sim}.spice,
-                    signoff/, pex/, pex_report.yaml
+out/                dut_<d>.png, dut_<d>_{lvs,kpex,sim}.spice (at FINAL_LAYOUT = v3),
+                    signoff/, pex/ (dut_<d>_post.spice, metrics_v3_*.json), pex_report.yaml
+                    (GDS is git-ignored — it regenerates byte-for-byte from gen_layout.py; the
+                    reviewer copies of the v1/v2/v3 GDS live in ../report/layout/<tier>/)
 ```
 
 Run (uv env from the repo root; tool locations per the top-level README's
@@ -189,5 +199,58 @@ group-delay variation + extracted-rail stability (K-factor, odd-mode)
 before tapeout; 2-row floorplan held in reserve (halves the summing bus →
 ~+1.5 dB more S22 margin) if larger margins are required.
 
-Before/after figure of the v2 optimization: `before_after.png`
-(regenerate with `compare_layouts.py`).
+Before/after figure of the v2 optimization: `before_after_v2.png`
+(regenerate with `compare_layouts.py --after v2`; `before_after.png` is the
+original v1 → v3 comparison, `--after v3`).
+
+## 2026-08-18 (v3): layout/schematic co-design through the SpiceXplorer platform — ALL 8 SPECS PASS, honestly measured
+
+Two things were wrong with the v2 scorecard above, both found by running the
+paper's co-design loop (`codesign/`, Algorithm 1) *through the platform* and
+having the rf-layout-reviewer read the record:
+
+* **the instrument** — "S11 −10.03 / S22 −10.14" were the worst points of the
+  ngspice `dec 20` grid, whose last in-band samples are 31.62 / 44.67 GHz;
+  at the actual band edges (32 / 50 GHz, interpolated — what the paper's
+  table and `run_verify.py` report) v2 reads **S11 −9.94 / S22 −9.24 dB and
+  fails both reflection specs**;
+* **the extractor's halo** — kpex drops couplings beyond the tech's 8 µm
+  sidewall halo, and `out_gap` sat exactly on it (`KPEX_HALO_UM=20` /
+  `pex.halo_um` in the platform now; the record then reads −9.98 / −9.36).
+
+Two co-design rounds (280 platform trials, 4 islands each; per-round record
+in `codesign/results/`) turned the round-1 review into five *structural*
+generator options — `bus_trim` (per-net output bus extents), `sub_bus`
+(taps to the ring on Metal1, no Metal3 bus under the risers), `cell_order`
+(M0|M1|L0), `c_strip` (cascode-collector tab away from the PyCell's Metal2
+emitter plate), `out_split` (outn on TopMetal2) — exposed as INT knobs so the
+search decides. Accepted point = `FINAL_LAYOUT` (r2 island s3 `run_38`;
+tail 15.93 mA, vcasc 3.31 V, R_C 46.5 Ω, R_E 3.24 Ω, C_deg 18.45 fF,
+out_gap 6.37, all five structural options on):
+
+| | v2 (record) | **v3** | spec |
+|---|---|---|---|
+| S11 @32 GHz / −10 dB edge | −9.94 dB / 31.7 GHz | **−10.05 dB / 32.2 GHz** (halo 20: −10.07) | ≤ −10 / ≥ 32 |
+| S22 @50 GHz / −10 dB edge | −9.24 dB / 45.5 GHz | **−10.72 dB / 54.7 GHz** (halo 20: −10.78) | ≤ −10 / ≥ 50 |
+| gain LSB / MSB, weight | 2.27 / 8.25, 5.98 dB | 2.23 / 8.21, 5.97 dB | ≥ 2.2 / ≥ 8.2, ≥ 5 |
+| BW MSB / LSB | 58.8 / 78.9 GHz | 61.1 / 82.4 GHz | ≥ 50 |
+| swing / power | 2.21 Vpp / 179.1 mW | 2.26 Vpp / 190.2 mW | ≥ 2.1 / ≤ 192 |
+| core area | 99.6 × 75.8 = 7552 µm² | **97.6 × 70.5 = 6880 µm²** | (paper 11 300) |
+
+DRC + LVS PASS on all three DUTs; kpex RC mode (1861 wiring R) reproduces the
+CC scorecard exactly. Margins are thin by construction (S11 is
+device-limited at ≈ −11.4 dB with zero wiring; the S22 floor is the cascode
+junction C at −14.5 dB) — the full budget, the ceiling analysis, the rounds
+table and the figures (`codesign/pam4_layout_annotated.png`,
+`codesign/before_after.png` = v2 → v3 boxed, `codesign/rounds.png`) are in
+`codesign/README.md`; `before_after.png` here is original v1 → v3 on the PDK
+render; notebook 04 reads the record.
+
+**Reviewer evidence.** `../report/` (rebuilt by `make report`) regenerates
+v1 (original floorplan, nominal sizing), v2 and v3 from `gen_layout.py`,
+re-runs DRC / LVS / kpex on each, re-simulates every bench (S11/S21/S22 at
+`dec 100`, p/n balance, DC transfer, 48 GBd eyes) alongside the schematic,
+and keeps the GDS + LVS/kpex/post-layout netlists + signoff logs per tier
+next to the tables and KLayout renders. The p/n matching audit of the
+v3 floorplan (asymmetric `out_split` riser stacks: 0.05 dB / 1.2° / −39.5 dBc
+to 48 GHz vs 0.03 dB / 0.5° / −46.5 dBc for v2) is in `codesign/README.md`.
