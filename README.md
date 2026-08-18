@@ -144,25 +144,29 @@ Both columns through the same `driver_lib` benches (notebook 04 §5):
 
 ![v2 vs v3 S-parameters](notebooks/report_figs/sparams_v2_v3_post_layout.png)
 
-**48 GBaud PAM-4 eye** — nominal schematic vs re-tuned schematic vs
-parasitic-extracted layout, same testbench:
+**S-parameters, all four tiers** (S21 both paths, S11, S22 — schematic /
+first-pass / v2 / v3, `report/`):
 
-![eye diagrams](notebooks/report_figs/eye_48gbd_pam4.png)
+![s-parameters](report/figs/fig_sparams.png)
 
-**S-parameters** (S21 both paths, S11, S22 — schematic vs post-layout):
+**DC transfer** (swing signoff, all tiers) and **p/n balance audit**:
 
-![s-parameters](notebooks/report_figs/sparams_s21_s11_s22.png)
+![dc transfer](report/figs/fig_dc.png)
+![balance](report/figs/fig_balance.png)
 
-**DC transfer + the four PAM-4 DAC levels** (swing/linearity signoff):
+**Final pam4 layout — v3, the layout of record** (3 differential cascode
+cells summing into shared collector loads; DRC + LVS clean; KLayout render,
+every optimizer knob annotated):
 
-![dc transfer](notebooks/report_figs/dc_transfer_dac_levels.png)
+![final layout v3](report/figs/fig_layout_annotated.png)
 
-**Final pam4 layout** (3 differential cascode cells summing into shared
-collector loads; DRC + LVS clean):
+The notebook-03 signoff figures (`notebooks/report_figs/{pam4_layout_final,
+eye_48gbd_pam4,sparams_s21_s11_s22,dc_transfer_dac_levels}.png`) are the
+**v2** layout of record (they run on `layout/out/pex/dut_pam4_best_post.spice`);
+`report/` supersedes them for v3.
 
-![final layout](notebooks/report_figs/pam4_layout_final.png)
-
-All plots regenerate from `notebooks/03_signoff.py`; the executed
+The report plots regenerate with `make report`, the notebook plots from
+`notebooks/03_signoff.py`; the executed
 notebooks (`.ipynb` built locally from the paired `.py`, `make notebooks`)
 contain every table and figure inline:
 
