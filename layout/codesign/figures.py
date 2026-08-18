@@ -187,7 +187,7 @@ def fig_annotated(params: gen_layout.LayoutParams, out: str, title: str | None =
                            ("Activ", "Metal1", "Metal2", "Metal3", "Metal4", "TopMetal1", "TopMetal2", "MIM")],
                   loc="lower right", fontsize=7, ncol=4, framealpha=0.9)
         fig.tight_layout()
-        fig.savefig(out, dpi=150)
+        _save(fig, out, 150)
         plt.close(fig)
 
 
@@ -253,7 +253,7 @@ def fig_before_after(p0, p1, out: str, m0: dict | None = None, m1: dict | None =
             ax.set_title(f"{lab}\n{_score_text(m)}", fontsize=9)
         _diff_boxes(axs[1], p0, p1, geo1)
         fig.tight_layout()
-        fig.savefig(out, dpi=140)
+        _save(fig, out, 140)
         plt.close(fig)
 
 
@@ -276,11 +276,20 @@ def fig_rounds(panels: list[tuple[str, gen_layout.LayoutParams, dict | None]], o
         for ax in axs:
             ax.set_xlim(*xl); ax.set_ylim(*yl)
     fig.tight_layout()
-    fig.savefig(out, dpi=130)
+    _save(fig, out, 130)
     plt.close(fig)
 
 
 # ---------------------------------------------------------------- CLI
+def _save(fig, out: str, dpi: int) -> None:
+    """PNG at `dpi` plus a vector twin (.pdf) next to it — every polygon is a
+    PathPatch, so the PDF is true vector for print/paper use."""
+    fig.savefig(out, dpi=dpi)
+    root, ext = os.path.splitext(out)
+    if ext.lower() != ".pdf":
+        fig.savefig(root + ".pdf")
+
+
 def _metrics_of(path: str | None) -> dict | None:
     if not path:
         return None
