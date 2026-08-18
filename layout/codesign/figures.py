@@ -45,7 +45,17 @@ LAYERS = [
     ((67, 0), "Metal5", "#dcd146", 0.5, 14), ((125, 0), "TopVia1", "#c98a2e", 0.9, 15),
     ((126, 0), "TopMetal1", "#ffe6bf", 0.65, 16), ((133, 0), "TopVia2", "#ff8000", 0.9, 17),
     ((134, 0), "TopMetal2", "#ff8000", 0.35, 18),
+    ((129, 0), "Vmim", "#ff00ff", 0.9, 19),                    # MIM top-plate via
+    ((69, 0), "MemCap", "#268c6b", 0.25, 4), ((128, 0), "PolyRes", "#bf4026", 0.25, 3),
 ]
+# Layers a GDS may carry that are NOT geometry of the circuit (recognition /
+# marker / text / fill-control layers) — silently skipped by draw_gds. Anything
+# else undrawn is reported, so a figure can never quietly drop a metal or via.
+NON_GEOMETRY_LAYERS = {
+    (24, 0): "RES marker", (52, 0): "HeatRes marker", (26, 0): "TRANS marker",
+    (33, 0): "EmWind marker", (111, 0): "EXTBlock", (63, 0): "TEXT", (1, 20): "Activ.mask",
+    (7, 21): "nSD.block",
+}
 
 
 # ---------------------------------------------------------------- rendering
@@ -73,6 +83,20 @@ def draw_gds(ax, gds: str, cell: str | None = None, layers=LAYERS) -> tuple:
                 codes += [Path.MOVETO] + [Path.LINETO] * (len(pts) - 2) + [Path.CLOSEPOLY]
             ax.add_patch(PathPatch(Path(verts, codes), facecolor=col, edgecolor="none",
                                    alpha=alpha, zorder=z))
+    # coverage check: every layer with shapes is either drawn, a known marker/text
+    # layer, or a pin/label datatype (dt 2 = pin, 23 = nofill, 25 = text) — else warn.
+    drawn = {(l, d) for (l, d), *_ in layers}
+    undrawn = []
+    for li in ly.layer_indexes():
+        info = ly.get_info(li)
+        key = (info.layer, info.datatype)
+        if key in drawn or key in NON_GEOMETRY_LAYERS or info.datatype in (2, 23, 25):
+            continue
+        n = sum(1 for _ in top.begin_shapes_rec(li))
+        if n:
+            undrawn.append((key, n))
+    if undrawn:
+        print(f"WARNING draw_gds: layers with shapes not drawn: {undrawn}", file=sys.stderr)
     b = top.dbbox()
     ax.set_xlim(b.left - 2, b.right + 2)
     ax.set_ylim(b.bottom - 2, b.top + 2)

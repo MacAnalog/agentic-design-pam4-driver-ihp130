@@ -144,6 +144,16 @@ project:
       - { name: swing,    testbench: layout, sim_type: layout, goal: exceed,   target: 2.1,  range: 0.2, tolerance: 0, weight: 5, reward_type: none }
       - { name: power,    testbench: layout, sim_type: layout, goal: minimize, target: 192.0, range: 20.0, tolerance: 0, weight: 5, reward_type: none }
       # --- validity + physical gates ---
+      # --- p/n balance (matching audit after r2; measure_post via driver_lib.run_ac_balance,
+      #     MSB path <= 48 GHz). Bounds = "no worse than 2x the layout of record" (v2: 0.03 dB /
+      #     0.5 deg / -46.5 dBc; v3 accepted: 0.05 dB / 1.2 deg / -39.5 dBc). Round-3+ specs —
+      #     the r1/r2 record was scored without them.
+      - { name: pn_gain_imb_db,   testbench: layout, sim_type: layout, goal: minimize, target: 0.1,   range: 0.1,  tolerance: 0, weight: 5, reward_type: none,
+          description: "max |20log|Vp|-20log|Vn|| of the MSB path <= 48 GHz (dB)" }
+      - { name: pn_phase_imb_deg, testbench: layout, sim_type: layout, goal: minimize, target: 2.0,   range: 2.0,  tolerance: 0, weight: 5, reward_type: none,
+          description: "max deviation of the p/n output phase from 180 deg <= 48 GHz" }
+      - { name: cm_leak_dbc,      testbench: layout, sim_type: layout, goal: minimize, target: -35.0, range: 10.0, tolerance: 0, weight: 5, reward_type: none,
+          description: "differential-to-common-mode conversion 20log|Vp+Vn|/|Vp-Vn|, worst <= 48 GHz (dBc)" }
       - { name: ic_ma_per_finger, testbench: layout, sim_type: layout, goal: minimize, target: 3.0, range: 1.0, tolerance: 0, weight: 50, reward_type: none,
           description: "npn13G2 model-card validity: I_C < 3 mA per emitter finger" }
       - { name: drc_pass,  testbench: layout, sim_type: layout, goal: exact, target: 1, tolerance: 0, range: 1, weight: 100, reward_type: none }

@@ -19,6 +19,8 @@ SAME eight signoff metrics notebook 03 reports, measured by the SAME
     s11 (dB, worst path, <=32 GHz)   s11_edge_ghz (-10 dB crossing)
     s22 (dB, <=50 GHz)               s22_edge_ghz
     swing (Vpp diff)                 power (mW @ 4 V)
+    pn_gain_imb_db / pn_phase_imb_deg / cm_leak_dbc (MSB path p/n balance
+    up to 48 GHz: |gain| and |phase| imbalance, diff->CM conversion)
     plus s11_lsb / s11_msb / bw_lsb / bw_msb, ic_ma_per_finger (model-card
     validity: I_C < 3 mA per emitter finger) and n_parasitics.
 
@@ -42,6 +44,7 @@ import pex_sim  # noqa: E402
 DUT = gen_layout.CODESIGN_DUT
 DEFAULT_BIAS = {"tail_ma": 15.0, "vcasc": 3.35, "vcc": 4.0}
 S11_BAND_GHZ, S22_BAND_GHZ = 32.0, 50.0
+BAL_BAND_GHZ = 48.0    # p/n balance audited up to the symbol rate
 AC_PTS_PER_DEC = 100     # r2: 20 -> 100 (grid 10^(k/20) skips 32 & 50 GHz)
 
 
@@ -119,6 +122,19 @@ def measure(req: dict) -> dict[str, float]:
     f22, s22 = r22["f_ghz"], r22["s22_db"]
     m["s22"] = _band_max(f22, s22, S22_BAND_GHZ)
     m["s22_edge_ghz"] = _edge(f22, s22)
+    # p/n balance (matching audit, added after r2): worst |gain imbalance|,
+    # |phase imbalance| and diff->CM conversion of the MSB path up to the
+    # symbol rate (48 GBd) — a layout asymmetry (per-net bus extents, one
+    # output on another metal) is scored here, not hidden in the differential S21.
+    rb = dl.run_ac_balance(DUT, drive="msb", dp=dp, dut_ref=ref, timeout_s=900,
+                           pts_per_dec=AC_PTS_PER_DEC)
+    if not rb["ok"]:
+        raise RuntimeError(f"balance failed: {rb.get('log', '')[-1500:]}")
+    fb = rb["f_ghz"]
+    inb = fb <= BAL_BAND_GHZ
+    m["pn_gain_imb_db"] = float(np.abs(rb["gain_imb_db"][inb]).max())
+    m["pn_phase_imb_deg"] = float(np.abs(rb["phase_imb_deg"][inb]).max())
+    m["cm_leak_dbc"] = _band_max(fb, rb["cm_leak_dbc"], BAL_BAND_GHZ)
     d = dl.run_dc(DUT, drive="both", vd_max_mv=900.0, step_mv=15.0, dp=dp,
                   dut_ref=ref, timeout_s=900)
     if not d["ok"]:

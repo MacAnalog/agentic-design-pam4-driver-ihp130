@@ -749,6 +749,48 @@ def run_ac_s22(dut: str, *, dp: DriverParams | None = None,
     return {"ok": 1.0, "f_ghz": data[:, 0] / 1e9, "s22_db": data[:, 1]}
 
 
+def tb_ac_balance(dut: str, dut_ref: str, *, drive: str = "msb",
+                  dp: DriverParams | None = None, corner: str = "tt",
+                  f_start_hz: float = 1e8, f_stop_hz: float = 1e11,
+                  pts_per_dec: int = 20,
+                  out_csv: str = "acbal.csv") -> str:
+    """.op/.ac p/n BALANCE sweep (added 2026-08-18 for the co-design matching
+    audit): the tb_ac stimulus, but the two output half-swings are written
+    separately — |Vp|, |Vn| (dB), their phases (deg) and the common-mode
+    residual Vp+Vn (dB) vs the differential Vp-Vn — so a layout asymmetry
+    (per-net bus extents, one output on a different metal, ...) shows up as a
+    gain / phase imbalance and a differential-to-common-mode conversion."""
+    deck = tb_ac(dut, dut_ref, drive=drive, dp=dp, corner=corner,
+                 f_start_hz=f_start_hz, f_stop_hz=f_stop_hz,
+                 pts_per_dec=pts_per_dec, out_csv="ac.csv")
+    return deck.replace(
+        "wrdata ac.csv s21db s11db",
+        "let gpdb = db(2*v(outp))\nlet gndb = db(2*v(outn))\n"
+        "let php = ph(v(outp))*180/pi\nlet phn = ph(v(outn))*180/pi\n"
+        "let cmdb = db(v(outp)+v(outn))\nlet ddb = db(v(outp)-v(outn))\n"
+        f"wrdata {out_csv} gpdb gndb php phn cmdb ddb")
+
+
+def run_ac_balance(dut: str, *, drive: str = "msb",
+                   dp: DriverParams | None = None, dut_ref: str | None = None,
+                   timeout_s: float = 240.0, **kw) -> dict[str, object]:
+    """p/n balance sweep -> f_ghz, gain_imb_db (|Vp|-|Vn|), phase_imb_deg
+    (deviation of Vp/Vn from 180 deg, in (-180, 180]), cm_leak_dbc
+    (20log|Vp+Vn|/|Vp-Vn|: differential-to-common-mode conversion)."""
+    dp = dp or DriverParams()
+    sub = _resolve_dut_ref(dut, dp, dut_ref)
+    deck = tb_ac_balance(dut, sub, drive=drive, dp=dp, **kw)
+    out, log = run_deck(deck, ["acbal.csv"], timeout_s=timeout_s)
+    data = out["acbal.csv"]
+    if data is None:
+        return {"ok": 0.0, "log": log}
+    gp, gn, php, phn = data[:, 1], data[:, 3], data[:, 5], data[:, 7]
+    cm, dd = data[:, 9], data[:, 11]
+    dph = (php - phn) % 360.0 - 180.0                  # 0 = ideal (Vn = -Vp)
+    return {"ok": 1.0, "f_ghz": data[:, 0] / 1e9, "gain_imb_db": gp - gn,
+            "phase_imb_deg": dph, "cm_leak_dbc": cm - dd}
+
+
 def run_dc(dut: str, *, drive: str = "both", dp: DriverParams | None = None,
            dut_ref: str | None = None, timeout_s: float = 240.0,
            **kw) -> dict[str, object]:

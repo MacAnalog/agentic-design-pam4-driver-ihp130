@@ -131,6 +131,34 @@ device-limited, see below); the honest statement is *the co-designed layout
 meets the specs the layout of record missed, at 91 % of its area and 61 % of
 the paper's, for +11 mW*.
 
+## Matching audit — is the accepted layout too asymmetric?
+
+The structural options make the accepted point visibly asymmetric: `bus_trim`
+gives each output bus its own extents (outp spans M0…M1, outn spans M1…L0 —
+each cell's p riser and n riser sit 20 µm apart, so per-net trimming shifts
+the two buses by one cell), and `out_split` puts outn on TopMetal2 while outp
+stays on TopMetal1. Measured on the extracted netlists (kpex CC, block default;
+`driver_lib.run_ac_balance`, MSB path, `pn_*` / `cm_leak_dbc` scalars of the
+hook):
+
+| | outp / outn wiring C to ground (fF) | \|gain\| imbalance ≤ 48 GHz | phase imbalance ≤ 48 GHz | diff→CM conversion @48 GHz | single-ended S22 outp / outn @50 GHz |
+|---|---|---|---|---|---|
+| layout of record (v2) | 16.4 / 17.8 (+9 %) | 0.03 dB | 0.5° | −46.5 dBc | −9.85 / −9.61 dB |
+| **v3 accepted** | 11.9 / 15.0 (+27 %) | 0.05 dB | 1.2° | −39.5 dBc | −11.32 / −10.70 dB |
+
+So the asymmetry is real and doubled — but at the level of 0.05 dB / 1.2° /
+−40 dBc it is far below anything that shows in the eye (RLM 0.974 in both) or
+in the differential S-parameters, and both single-ended output reflections
+improved. The extra outn capacitance is the TopVia2 pads and TM2 stack of the
+`out_split` risers, not the bus itself. It is now **scored**: the hook reports
+`pn_gain_imb_db`, `pn_phase_imb_deg`, `cm_leak_dbc`, and `project_setup.yaml`
+carries them as bounds (≤ 0.1 dB / ≤ 2° / ≤ −35 dBc) for round 3 — the r1/r2
+record was measured without them (they were added after the r2 review of the
+accepted layout). Round-3 knob candidates that remove the mechanism rather
+than bound it: a *mirrored* `out_split` (alternate which net takes TM2 per
+half) or both buses on TopMetal2 with the gap re-optimized; `bus_trim`
+symmetric variant (trim both buses to the union of risers).
+
 ## Ceiling (why the search stops where it stops)
 
 * **S22** — with *all* output wiring C removed the extracted DUT reads −14.5 dB
@@ -155,6 +183,18 @@ the paper's, for +11 mW*.
 * `pam4_layout_annotated.png` — every knob of `project_setup.yaml` drawn on the
   render of the accepted point (black = layout µm, red = electrical sizing that
   draws geometry, blue = structural options).
+
+  These figures are **drawn from the GDS**, not by hand: `figures.py` reads the
+  generator's GDS with `klayout.db`, flattens the cell, merges each layer into a
+  `Region` and draws every polygon (with holes) as a matplotlib `PathPatch` — the
+  PDF twins are therefore true vector geometry of the very GDS that passed
+  DRC/LVS. Every conductor and via layer of SG13G2 is in the layer map (Activ,
+  GatPoly, Cont, Metal1–5 + Via1–4, TopVia1/2, TopMetal1/2, MIM/Vmim/MemCap,
+  PolyRes); marker/text/pin datatypes are skipped on purpose, and `draw_gds`
+  prints a warning for any other layer that carries shapes, so a figure cannot
+  silently drop a metal or a via. Connectivity itself is proved by LVS on the
+  same GDS, not by the picture. KLayout has no vector export of its own; its
+  native PDK-coloured render is `../out/dut_pam4.png` (`layout/render.py`).
 * `before_after.png` — layout of record | accepted point, same scale, changed
   regions boxed and moved knobs listed.
 * `rounds.png` — layout of record | r1 best | r2 accepted strip with scorecards.
