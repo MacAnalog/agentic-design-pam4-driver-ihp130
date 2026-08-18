@@ -9,7 +9,7 @@
 #     uv run --project ../../../../spicexplorer-platform \
 #         spicexplorer-optimize project_setup.yaml --budget 60
 #
-# (or `make codesign` at the repo root — see codesign/README.md).
+# (or `make codesign ROUND=r3 SEED=0 BUDGET=40` at the repo root — see codesign/README.md).
 schema: layout-flow/1
 generator: ../gen_layout.py
 cell: pam4drv_pam4_lay

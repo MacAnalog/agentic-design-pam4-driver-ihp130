@@ -25,7 +25,7 @@ RUN       = $(ENV) uv run
 # kpex -> ngspice); the committed result used the default of 8.
 NB_BUDGET ?= 8
 
-.PHONY: all sync verify eye signoff notebooks nb01 nb02 nb03 nb04 clean
+.PHONY: all sync verify eye signoff notebooks nb01 nb02 nb03 nb04 codesign clean
 
 all: verify eye signoff notebooks
 
@@ -54,6 +54,15 @@ nb03:
 
 nb04:
 	cd notebooks && $(RUN) jupytext --to notebook --execute 04_codesign_platform.py
+
+# one island of the layout/schematic co-design through the SpiceXplorer platform
+# (paper Alg. 1): make codesign ROUND=r3 SEED=0 BUDGET=40 [ALGO=OnePlusOne]
+ROUND ?= r3   # next round (r1/r2 are on the record)
+SEED ?= 0
+BUDGET ?= 40
+ALGO ?= OnePlusOne
+codesign:
+	cd layout/codesign && $(ENV) ./run_round.sh $(ROUND) $(SEED) $(BUDGET) $(ALGO)
 
 clean:
 	rm -rf notebooks/nb_opt notebooks/*.ipynb layout/out/signoff

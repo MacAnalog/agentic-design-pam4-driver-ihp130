@@ -29,6 +29,7 @@ runs/, logs/         per-trial artefacts + island logs (git-ignored; ~2 MB / tri
 
 ```sh
 # from the block repo (uv env + local.mk with PDK_ROOT / KPEX / KPEX_KLAYOUT_EXE):
+make codesign ROUND=r3 SEED=0 BUDGET=40 ALGO=OnePlusOne     # = the run_round.sh line below with the env injected
 cd layout/codesign
 ./run_round.sh r3 0 40 OnePlusOne &        # island 0
 ./run_round.sh r3 1 40 OnePlusOne &        # island 1 (different seed)

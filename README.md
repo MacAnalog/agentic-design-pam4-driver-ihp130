@@ -60,6 +60,53 @@ layout review into five **structural INT knobs** (`bus_trim`, `sub_bus`,
 Full story, rounds table, ceiling analysis and the annotated parameterized
 layout: [layout/codesign/README.md](layout/codesign/README.md); notebook 04.
 
+#### Where the co-optimization actually happens (the script to read)
+
+The agent-generated layout (`layout/gen_layout.py`, a gdsfactory generator
+whose `LayoutParams` are the knobs) and the schematic sizing were co-optimized
+**by `spicexplorer-optimize`**, not by any loop in this repo. Everything the
+platform needs is in **[`layout/codesign/`](layout/codesign/)** — three files:
+
+| file | role in Alg. 1 |
+|---|---|
+| [`flow.yaml`](layout/codesign/flow.yaml) | `layout-flow/1`: *what one trial is* — `generator: ../gen_layout.py`, `cell`, KLayout DRC + LVS (per-trial reference from the generator), kpex 2.5D (`mode: CC`, MIM stripped, `halo_um: 20`), and the `measure:` hook; `gates: {drc, lvs, pex}` = the skip rule |
+| [`project_setup.yaml`](layout/codesign/project_setup.yaml) | `sim_engine: layout`: *the search* — `dut_params` = θ_E ∪ θ_L ∪ θ_S with `init` = the layout of record (`seed_from_init`), `target_specs` = the eight signoff specs as feasibility bounds + S11/S22/area margins as the reward (`feasibility_reward` J), `ic_ma_per_finger` validity, DRC/LVS/PEX gates as `exact 1` specs |
+| [`measure_post.py`](layout/codesign/measure_post.py) | the hook `measure(req) -> scalars`: kpex netlist → `pex_sim.convert_pex_netlist` (MIM re-inserted) → `wrap_layout_dut` → the block's own `driver_lib` benches (`run_ac`, `run_ac_s22`, `run_dc`, bias) with the trial's sizing + `deck_params` (tail, V_casc) → `s11, s22, msb_gain, lsb_gain, weight, bw, swing, power, ic_ma_per_finger` |
+
+```yaml
+# project_setup.yaml (excerpt) — one line per knob; the platform owns Opt.ask/tell
+project:
+  sim_engine: layout
+  netlist: flow.yaml                     # the DUT "netlist" is the layout-flow spec
+  dut_params:
+    - { name: nx,       min_val: 2,   max_val: 4,    init: 3,    is_integer: true }   # θ_E (draws geometry)
+    - { name: tail_ma,  min_val: 10.0, max_val: 17.5, init: 15.0 }                    # θ_E (bench-only -> deck_params)
+    - { name: rc_ohm,   min_val: 40.0, max_val: 70.0, init: 50.0 }
+    - { name: out_gap,  min_val: 3.0,  max_val: 20.0, init: 8.0 }                     # θ_L (um)
+    - { name: bus_trim, min_val: 0,   max_val: 1,    init: 0,    is_integer: true }   # θ_S (round-2 structural option)
+    # ... 33 knobs in all
+  target_specs:
+    - { name: s11, goal: minimize, target: -10.0, range: 5.0, weight: 10, reward_type: relative-absolute }
+    - { name: s22, goal: minimize, target: -10.0, range: 5.0, weight: 10, reward_type: relative-absolute }
+    - { name: msb_gain, goal: exceed, target: 8.2, range: 1.0, weight: 5, reward_type: none }
+    # ... lsb_gain, weight, bw, swing, power, ic_ma_per_finger, drc_pass/lvs_match/pex_ok (exact 1)
+  optimizer_config: { type: nevergrad, name: TwoPointsDE, seed_from_init: true }
+```
+
+One island of a round is one platform command (what `run_round.sh` /
+`make codesign` wrap):
+
+```sh
+uv run --project ../../../../spicexplorer-platform spicexplorer-optimize \
+    layout/codesign/project_setup.yaml --budget 40 --seed 0 --algo OnePlusOne \
+    --outdir layout/codesign/runs/r2_s0
+```
+
+Every trial leaves `runs/<round>_s<seed>/layout/layout/run_<n>_layout/{pam4drv_pam4_lay.gds, drc/, lvs/, pex/, measure.log, summary.json}`;
+`harvest.py` folds the islands into `results/<round>/{trials.jsonl,summary.json,best.*}` — the record R the agent reads
+(and notebook 04 plots). The agent's part of the loop is only the diff of `gen_layout.py` and the bounds between rounds
+(`rounds/r1_project_setup.yaml` → `project_setup.yaml`).
+
 Open pre-tapeout items from the review (vcasc bypass/stability, EM current
 density, ground cage, matching dummies) are tracked in
 [layout/LAYOUT_REVIEW.md](layout/LAYOUT_REVIEW.md).
