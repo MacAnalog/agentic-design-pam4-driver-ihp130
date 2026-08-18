@@ -252,6 +252,8 @@ def run_kpex(dut: str, mode: str = "CC") -> str:
     cmd = [KPEX, "--pdk", "ihp-sg13g2", "--gds", gds, "--cell", cell,
            "--schematic", schem, "--2.5D", "--mode", mode,
            "--out_dir", out_dir]
+    if os.environ.get("KPEX_HALO_UM"):      # sidewall halo override (kpex --halo)
+        cmd += ["--halo", os.environ["KPEX_HALO_UM"]]
     r = subprocess.run(cmd, env=env, capture_output=True, text=True)
     spice = os.path.join(out_dir, f"dut_{dut}_nomim__{cell}",
                          f"{cell}_k25d_pex_netlist.spice")
@@ -339,7 +341,9 @@ def ac_metrics(dut: str, subckt_path: str, *, drive: str = "msb",
                                  [f[i + 1], f[i]]))
             break
     m32 = f <= 32e9
-    s11w = float(s11[m32].max())
+    # worst S11 in band INCLUDING the exact 32 GHz edge (the dec-20 grid's
+    # last in-band point is 31.62 GHz)
+    s11w = float(max(s11[m32].max(), np.interp(32e9, f, s11)))
     mi = re.search(r"i\(vcc\)\s*=\s*([-\d.e+]+)", log, re.IGNORECASE)
     vcc_v = dict(BIASES, **(biases or {}))["vcc"]
     p_mw = abs(float(mi.group(1))) * vcc_v * 1e3 if mi else float("nan")

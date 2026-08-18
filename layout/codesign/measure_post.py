@@ -43,6 +43,18 @@ import pex_sim  # noqa: E402
 DUT = gen_layout.CODESIGN_DUT
 DEFAULT_BIAS = {"tail_ma": 15.0, "vcasc": 3.35, "vcc": 4.0}
 S11_BAND_GHZ, S22_BAND_GHZ = 32.0, 50.0
+AC_PTS_PER_DEC = 100     # r2: 20 -> 100 (grid 10^(k/20) skips 32 & 50 GHz)
+
+
+def _band_max(f: np.ndarray, s: np.ndarray, edge_ghz: float) -> float:
+    """Worst (max) value over the band, INCLUDING the exact band edge by
+    interpolation. r1's `s[f <= edge].max()` on the ngspice `dec 20` grid
+    never sampled 32 / 50 GHz (last points 31.62 / 44.67 GHz) and read S22
+    ~0.9 dB too good (rf-layout-reviewer, 2026-08-18) — the block's own
+    run_verify.py spot points (2/10/20/32/40/50 GHz) are the reference."""
+    inside = s[f <= edge_ghz]
+    at_edge = float(np.interp(edge_ghz, f, s))
+    return float(max(inside.max() if inside.size else -1e9, at_edge))
 
 
 def _f3db(f: np.ndarray, s21: np.ndarray, lf: float) -> float:
@@ -79,13 +91,14 @@ def measure(req: dict) -> dict[str, float]:
     m: dict[str, float] = {}
     ac = {}
     for drv in (("lsb", "msb") if DUT == "pam4" else ("in",)):
-        r = dl.run_ac(DUT, drive=drv, dp=dp, dut_ref=ref, timeout_s=900)
+        r = dl.run_ac(DUT, drive=drv, dp=dp, dut_ref=ref, timeout_s=900,
+                      pts_per_dec=AC_PTS_PER_DEC)
         if not r["ok"]:
             raise RuntimeError(f"AC {drv} failed: {r.get('log', '')[-1500:]}")
         f, s21, s11 = r["f_ghz"], r["s21_db"], r["s11_db"]
         lf = float(s21[np.argmin(np.abs(f - 1.0))])
         ac[drv] = dict(gain=lf, bw=_f3db(f, s21, lf),
-                       s11=float(s11[f <= S11_BAND_GHZ].max()),
+                       s11=_band_max(f, s11, S11_BAND_GHZ),
                        s11_edge=_edge(f, s11))
     if DUT == "pam4":
         m["lsb_gain"], m["msb_gain"] = ac["lsb"]["gain"], ac["msb"]["gain"]
@@ -97,11 +110,12 @@ def measure(req: dict) -> dict[str, float]:
     m["s11_edge_ghz"] = min(v["s11_edge"] for v in ac.values())
     for drv, v in ac.items():
         m[f"s11_{drv}"], m[f"bw_{drv}"] = v["s11"], v["bw"]
-    r22 = dl.run_ac_s22(DUT, dp=dp, dut_ref=ref, timeout_s=900)
+    r22 = dl.run_ac_s22(DUT, dp=dp, dut_ref=ref, timeout_s=900,
+                        pts_per_dec=AC_PTS_PER_DEC)
     if not r22["ok"]:
         raise RuntimeError(f"S22 failed: {r22.get('log', '')[-1500:]}")
     f22, s22 = r22["f_ghz"], r22["s22_db"]
-    m["s22"] = float(s22[f22 <= S22_BAND_GHZ].max())
+    m["s22"] = _band_max(f22, s22, S22_BAND_GHZ)
     m["s22_edge_ghz"] = _edge(f22, s22)
     d = dl.run_dc(DUT, drive="both", vd_max_mv=900.0, step_mv=15.0, dp=dp,
                   dut_ref=ref, timeout_s=900)

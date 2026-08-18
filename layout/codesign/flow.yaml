@@ -40,7 +40,9 @@ pex:
   schematic_writer: write_pex_schematic   # 3-terminal rsil, kpex deck flavour
   strip_mim: true                    # kpex has no cap_cmim (see layout/README.md)
   strip_mim_layers: [[36, 0], [129, 0], [69, 0]]   # MIM, Vmim, MemCap
-  strip_mim_topmetal_margin_um: null # keep the plates as plain metal (coupling extracts)
+  strip_mim_topmetal_margin_um: null
+  halo_um: 20              # r2: kpex sidewall halo 8 -> 20 um (couplings beyond the halo are DROPPED;
+                           # out_gap/cell_gap/gap_x knobs cross 8 um -> fake C steps at the tech default) # keep the plates as plain metal (coupling extracts)
   ac_gnd_nets: [vcc, vcasc, vcmb, sub]
   timeout_s: 1800
 measure:
