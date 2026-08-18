@@ -87,6 +87,20 @@
     "eye_levels_v",
     "eye_openings_v"
    ]
+  },
+  "ac_msb_sp": {
+   "out": "ac_msb_sp.csv",
+   "cols": "f, sdd21_db, f, sdd11_db",
+   "gives": [
+    "cross-check: msb_gain, bw_msb, s11_msb, s11_edge (ngspice sp)"
+   ]
+  },
+  "s22_sp": {
+   "out": "s22_sp.csv",
+   "cols": "f, sdd22_db",
+   "gives": [
+    "cross-check: s22, s22_edge_ghz (ngspice sp)"
+   ]
   }
  }
 }

@@ -156,6 +156,20 @@ def extract(tier: str, deck_dir: str | None = None, verbose: bool = True) -> dic
         out["ic_ma_per_finger"] = meta["cell"]["tail_ma"] / 2.0 / meta["cell"]["nx"]
         say(f"   power     = mean|I(Vcc)| for t>={hold0:g} ns x {meta['vcc']:g} V  = {out['power']:8.2f} mW")
         say(f"   ic/finger = tail_ma/2/nx = {meta['cell']['tail_ma']:g}/2/{meta['cell']['nx']}      = {out['ic_ma_per_finger']:8.3f} mA")
+    # independent-method cross-checks (ngspice built-in `sp` analysis, mixed-mode Sdd)
+    a = load(d, "ac_msb_sp.csv")
+    if a is not None:
+        f, s21, s11 = a[:, 0] / 1e9, a[:, 1], a[:, 3]
+        lf = float(s21[np.argmin(np.abs(f - 1.0))])
+        out["sp_msb_gain"] = lf; out["sp_bw_msb"] = f3db(f, s21, lf)
+        out["sp_s11_msb"] = band_max(f, s11, S11_BAND_GHZ); out["sp_s11_edge_msb"] = edge(f, s11)
+        say(f"   [sp] msb_gain / bw_msb / s11_msb / edge (ngspice sp Sdd21, Sdd11) = "
+            f"{lf:.3f} dB / {out['sp_bw_msb']:.2f} GHz / {out['sp_s11_msb']:.3f} dB / {out['sp_s11_edge_msb']:.2f} GHz")
+    a = load(d, "s22_sp.csv")
+    if a is not None:
+        f, s22 = a[:, 0] / 1e9, a[:, 1]
+        out["sp_s22"] = band_max(f, s22, S22_BAND_GHZ); out["sp_s22_edge_ghz"] = edge(f, s22)
+        say(f"   [sp] s22 / edge (ngspice sp Sdd22)                = {out['sp_s22']:.3f} dB / {out['sp_s22_edge_ghz']:.2f} GHz")
     a = load(d, "eye.csv")
     if a is None:
         say("   eye.csv: not run")

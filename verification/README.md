@@ -10,7 +10,8 @@ the shipped GDS. Two ways to do it:
   `--no-eye`): runs every deck, extracts every number, prints PASS/FAIL against
   `expected.json` (the values on record, frozen from `report/data/metrics.json`),
   and exits non-zero on any miss. Last run on the research server:
-  **115/115 numbers reproduce** for all four tiers (see `last_run.json`).
+  **139/139 checks pass** — 115 numbers of the record for all four tiers, plus 24 independent-method
+  S-parameter cross-checks (ngspice `sp` analysis, see below and `last_run.json`).
 * **manual** — the recipe below, one deck at a time, then `extract.py` prints
   each number next to its definition. Only numpy is needed for the extraction.
 
@@ -51,6 +52,27 @@ The `.spiceinit` in each deck directory is mandatory (`ngbehavior=hsa` — witho
 it the HBT conducts 0 A silently; it also loads the OSDI resistor model the
 layout netlists need). ngspice reads it from the run directory, so run the
 decks from inside `decks/<tier>/`.
+
+### Independent method: ngspice's built-in S-parameter analysis
+
+The S21 / S11 / S22 decks compute the S-parameters with in-deck power-wave
+algebra (unit differential EMF through 2×50 Ω; `zin = vdiff·100/(1−vdiff)`,
+`S = (z−100)/(z+100)`, `S21 = 2·Vout/Vsrc`). Each tier also carries a twin deck
+that replaces the source/load resistors by ngspice **port sources**
+(`portnum n z0 50`) and lets ngspice's `sp` analysis (ngspice ≥ 42) produce the
+S-matrix; the mixed-mode quantity is formed from the p/n port pair,
+`Sdd = ½(S11 − S12 − S21 + S22)`:
+
+```sh
+ngspice -b ac_msb_sp.spice   # 4 ports (msbp, msbn, outp, outn) -> ac_msb_sp.csv: Sdd21, Sdd11 vs f
+ngspice -b s22_sp.spice      # 2 ports (outp, outn)             -> s22_sp.csv:    Sdd22 vs f
+python ../../extract.py d    # prints the [sp] lines next to the deck-algebra numbers
+```
+
+`verify.py` requires the two methods to agree to 0.01 dB / 0.05 GHz on gain,
+BW, S11, S22 and both −10 dB edges; on record they agree to all printed digits
+for every tier (e.g. v3: S11 −10.046 / S22 −10.720 dB, edges 32.20 / 54.73 GHz
+by both methods; schematic S22 −14.752 by both).
 
 Layout-side numbers (no ngspice):
 
@@ -105,6 +127,7 @@ verification/
   verify.py        automatic: ngspice on every deck + extract + compare with expected.json; DRC/LVS/area; regen XOR
   expected.json    the values on record (frozen report/data/metrics.json) + tolerances + units
   last_run.json    result of the last verify.py run
-  decks/<tier>/    ac_lsb, ac_msb, s22, balance, dc, bias, eye .spice; .spiceinit; meta.json  (CSV/log outputs git-ignored)
+  decks/<tier>/    ac_lsb, ac_msb, s22, balance, dc, bias, eye .spice + ac_msb_sp, s22_sp (ngspice `sp` twins);
+                   .spiceinit; meta.json  (CSV/log outputs git-ignored)
   work/            DRC/LVS/regen scratch (git-ignored)
 ```

@@ -40,7 +40,7 @@ import extract  # noqa: E402
 DECKS = os.path.join(HERE, "decks")
 EXPECTED = json.load(open(os.path.join(HERE, "expected.json")))
 TOL = EXPECTED["tol"]
-ORDER = ["ac_lsb", "ac_msb", "s22", "balance", "dc", "bias", "eye"]
+ORDER = ["ac_lsb", "ac_msb", "s22", "balance", "dc", "bias", "ac_msb_sp", "s22_sp", "eye"]
 
 RESULTS: list[tuple[str, str, str, object, object, bool]] = []   # tier, key, unit, got, exp, ok
 
@@ -93,6 +93,12 @@ def step_sim(tier: str, no_eye: bool) -> None:
                 "ic_ma_per_finger", "eye_rlm", "eye_min_v", "eye_vpp"):
         if key in got and key in exp:
             check(tier, key, got[key], exp[key], TOL.get(key, TOL["default"]), EXPECTED["units"].get(key, ""))
+    # independent method must agree with the wrdata algebra to 0.01 dB / 0.05 GHz
+    for a_, b_, tol_, unit in (("sp_msb_gain", "msb_gain", 0.01, "dB"), ("sp_bw_msb", "bw_msb", 0.05, "GHz"),
+                               ("sp_s11_msb", "s11_msb", 0.01, "dB"), ("sp_s11_edge_msb", "s11_edge_ghz", 0.05, "GHz"),
+                               ("sp_s22", "s22", 0.01, "dB"), ("sp_s22_edge_ghz", "s22_edge_ghz", 0.05, "GHz")):
+        if a_ in got and b_ in got and (b_ != "s11_edge_ghz" or got["s11_msb"] >= got.get("s11_lsb", -1e9)):
+            check(tier, f"{a_} == {b_}", got[a_], got[b_], tol_, unit + "  (ngspice sp vs deck algebra)")
     if "eye_openings_v" in got and "eye_openings_v" in exp:
         check(tier, "eye_openings_v", got["eye_openings_v"], exp["eye_openings_v"], TOL["eye_min_v"], "V")
 
