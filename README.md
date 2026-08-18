@@ -12,7 +12,9 @@ through the SpiceXplorer platform** (`spicexplorer-optimize`,
 notebooks plus a self-contained **reviewer report** ([`report/`](report/README.md):
 schematic vs v1 / v2 / v3 layouts through the same benches, DRC/LVS/PEX
 evidence, GDS + netlists, KLayout renders, eyes, tables — `make report`);
-every result below reproduces from this repo.
+every result below reproduces from this repo — and every number in the
+final table can be re-run by hand from static ngspice decks:
+[`verification/`](verification/README.md) (`make verify-report`).
 
 ## The layout journey
 
@@ -194,6 +196,8 @@ layout/       gen_layout.py (parameterized generator, FINAL_LAYOUT = v3,
 report/       reviewer report — build_report.py, README.md, figs/, data/
               (tables + raw sweeps), layout/<tier>/ (GDS + LVS/kpex/post
               netlists + DRC/LVS logs), schematic/  (make report)
+verification/ static ngspice decks per tier + extract.py + verify.py:
+              re-run and check every final number (make verify-report)
 notebooks/    jupytext .py sources (+ locally built .ipynb) + report_figs/
 results/      committed characterization plots + metrics YAML
 schematics/   xschem schematics (paper Fig. 1 / 2a / 2b)
@@ -242,6 +246,7 @@ make verify eye  # schematic benches + PAM-4 eye (results/*)
 make signoff     # layout DRC + LVS on all three DUTs
 make nb03        # execute the signoff notebook (jupytext -> .ipynb)
 make report      # rebuild report/ (all tiers, DRC/LVS/PEX, benches, eyes)
+make verify-report  # re-run every final number from static decks + DRC/LVS, PASS/FAIL vs record
 ```
 
 `make all` runs everything (incl. notebooks 01/02; 02 is the

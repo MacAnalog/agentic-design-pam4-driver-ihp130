@@ -38,3 +38,7 @@ report/work/
 # the report keeps its own GDS next to the DRC/LVS/PEX evidence
 !report/layout/*/dut_pam4.gds
 !report/layout/*/signoff/*/*.log
+
+# verification scratch: deck outputs + DRC/LVS/regen work dirs (decks + expected.json ARE tracked)
+verification/decks/*/*.csv
+verification/work/

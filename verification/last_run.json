@@ -1,0 +1,389 @@
+[
+ {
+  "tier": "a",
+  "key": "lsb_gain",
+  "got": 3.09031359,
+  "expected": 3.09031359,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "msb_gain",
+  "got": 9.06041338,
+  "expected": 9.06041338,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "weight",
+  "got": 5.97009979,
+  "expected": 5.97009979,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "bw_lsb",
+  "got": 92.73660096116492,
+  "expected": 92.73660096116492,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "bw_msb",
+  "got": 66.58935104258315,
+  "expected": 66.58935104258315,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "bw",
+  "got": 66.58935104258315,
+  "expected": 66.58935104258315,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "s11_lsb",
+  "got": -16.433948937017735,
+  "expected": -16.433948937017735,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "s11_msb",
+  "got": -10.873713058911163,
+  "expected": -10.873713058911163,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "s11",
+  "got": -10.873713058911163,
+  "expected": -10.873713058911163,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "s11_edge_ghz",
+  "got": 36.142831498500996,
+  "expected": 36.142831498500996,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "s22",
+  "got": -14.751502713692664,
+  "expected": -14.751502713692664,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "s22_edge_ghz",
+  "got": 88.72742435470984,
+  "expected": 88.72742435470984,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "pn_gain_imb_db",
+  "got": 0.0,
+  "expected": 0.0,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "pn_phase_imb_deg",
+  "got": 4.999999987376214e-07,
+  "expected": 4.999999987376214e-07,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "cm_leak_dbc",
+  "got": -291.44839208999997,
+  "expected": -291.44839208999997,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "swing",
+  "got": 2.36873876,
+  "expected": 2.36873876,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "power",
+  "got": 191.02721522170543,
+  "expected": 191.02721522170543,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "ic_ma_per_finger",
+  "got": 2.6666666666666665,
+  "expected": 2.6666666666666665,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "eye_rlm",
+  "got": 0.9950782162089395,
+  "expected": 0.9950782162089395,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "eye_min_v",
+  "got": 0.254065731,
+  "expected": 0.254065731,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "eye_vpp",
+  "got": 0.87450685,
+  "expected": 0.87450685,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "eye_openings_v",
+  "got": [
+   0.254929144,
+   0.254065731,
+   0.262382697
+  ],
+  "expected": [
+   0.254929144,
+   0.254065731,
+   0.262382697
+  ],
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "lsb_gain",
+  "got": 2.23225342,
+  "expected": 2.23225342,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "msb_gain",
+  "got": 8.20454565,
+  "expected": 8.20454565,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "weight",
+  "got": 5.97229223,
+  "expected": 5.97229223,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "bw_lsb",
+  "got": 82.37918192339683,
+  "expected": 82.37918192339683,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "bw_msb",
+  "got": 61.05083250474958,
+  "expected": 61.05083250474958,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "bw",
+  "got": 61.05083250474958,
+  "expected": 61.05083250474958,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "s11_lsb",
+  "got": -15.085217871950901,
+  "expected": -15.085217871950901,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "s11_msb",
+  "got": -10.046217719806679,
+  "expected": -10.046217719806679,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "s11",
+  "got": -10.046217719806679,
+  "expected": -10.046217719806679,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "s11_edge_ghz",
+  "got": 32.204684233906036,
+  "expected": 32.204684233906036,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "s22",
+  "got": -10.720097993343712,
+  "expected": -10.720097993343712,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "s22_edge_ghz",
+  "got": 54.72876851520201,
+  "expected": 54.72876851520201,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "pn_gain_imb_db",
+  "got": 0.05270322599999999,
+  "expected": 0.05270322599999999,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "pn_phase_imb_deg",
+  "got": 1.1663460999999984,
+  "expected": 1.1663460999999984,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "cm_leak_dbc",
+  "got": -39.453753417596275,
+  "expected": -39.453753417596275,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "swing",
+  "got": 2.25763576,
+  "expected": 2.25763576,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "power",
+  "got": 190.19263383255813,
+  "expected": 190.19263383255813,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "ic_ma_per_finger",
+  "got": 2.655,
+  "expected": 2.655,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "eye_rlm",
+  "got": 0.9948791945799104,
+  "expected": 0.9948791945799104,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "eye_min_v",
+  "got": 0.2299348795,
+  "expected": 0.2299348795,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "eye_vpp",
+  "got": 0.793453596,
+  "expected": 0.793453596,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "eye_openings_v",
+  "got": [
+   0.231524407,
+   0.2299348795,
+   0.237891821
+  ],
+  "expected": [
+   0.231524407,
+   0.2299348795,
+   0.237891821
+  ],
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "drc_pass",
+  "got": true,
+  "expected": true,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "lvs_match",
+  "got": true,
+  "expected": true,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "width_um",
+  "got": 97.62,
+  "expected": 97.62,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "height_um",
+  "got": 70.48,
+  "expected": 70.48,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "area_um2",
+  "got": 6880.257600000001,
+  "expected": 6880.257600000001,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "pex_n_c",
+  "got": 126,
+  "expected": 126,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "pex_n_r",
+  "got": 0,
+  "expected": 0,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "regen_xor_area",
+  "got": 0.0,
+  "expected": 0.0,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "regen_area_um2",
+  "got": 6880.257600000001,
+  "expected": 6880.257600000001,
+  "ok": true
+ }
+]

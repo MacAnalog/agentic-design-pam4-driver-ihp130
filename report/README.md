@@ -180,6 +180,11 @@ report/
   work/                    scratch (git-ignored)
 ```
 
+**Verify by hand:** every number in the tables above has a static ngspice
+deck in [`../verification/decks/<tier>/`](../verification/README.md) and a
+one-command checker (`make verify-report`) that re-runs it and compares with
+`verification/expected.json` (= `data/metrics.json` frozen).
+
 Regenerate: `make report` (≈ 15 min: three builds + DRC/LVS/kpex + all
 benches + 4 parallel eyes); `make report REPORT_ARGS='--skip-build --reuse-eye'`
 re-plots and re-tabulates from `work/` and `data/` in ~1.5 min. Tier sizing

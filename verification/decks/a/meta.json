@@ -1,0 +1,92 @@
+{
+ "tier": "a",
+ "label": "(a) schematic, nominal sizing",
+ "vcc": 4.0,
+ "cell": {
+  "nx": 3,
+  "tail_ma": 16.0,
+  "re_ohm": 2.5,
+  "cdeg_ff": 20.0,
+  "rc_ohm": 50.0,
+  "rb_ohm": 50.0,
+  "vcasc": 3.25,
+  "vcm_in": 1.9
+ },
+ "baud_hz": 48000000000.0,
+ "nsym": 200,
+ "decks": {
+  "ac_lsb": {
+   "out": "ac_lsb.csv",
+   "cols": "f, s21_db, f, s11_db",
+   "gives": [
+    "lsb_gain",
+    "bw_lsb",
+    "s11_lsb",
+    "s11",
+    "s11_edge_ghz",
+    "weight",
+    "bw"
+   ]
+  },
+  "ac_msb": {
+   "out": "ac_msb.csv",
+   "cols": "f, s21_db, f, s11_db",
+   "gives": [
+    "msb_gain",
+    "bw_msb",
+    "s11_msb",
+    "s11",
+    "s11_edge_ghz",
+    "weight",
+    "bw"
+   ]
+  },
+  "s22": {
+   "out": "s22.csv",
+   "cols": "f, s22_db",
+   "gives": [
+    "s22",
+    "s22_edge_ghz"
+   ]
+  },
+  "balance": {
+   "out": "balance.csv",
+   "cols": "f, gp_db, f, gn_db, f, php_deg, f, phn_deg, f, cm_db, f, dd_db",
+   "gives": [
+    "pn_gain_imb_db",
+    "pn_phase_imb_deg",
+    "cm_leak_dbc"
+   ]
+  },
+  "dc": {
+   "out": "dc.csv",
+   "cols": "vd, vout_diff, vd, i_vcc",
+   "gives": [
+    "swing"
+   ]
+  },
+  "bias": {
+   "out": "bias.csv",
+   "cols": "t, v(outp), t, i(Vcc)",
+   "hold0_ns": 11.0,
+   "t_end_ns": 14.0,
+   "gives": [
+    "power",
+    "ic_ma_per_finger"
+   ]
+  },
+  "eye": {
+   "out": "eye.csv",
+   "cols": "t, vout_diff",
+   "data_start_ns": 10.0,
+   "t_end_ns": 15.166666666666666,
+   "gives": [
+    "eye_rlm",
+    "eye_min_v",
+    "eye_vpp",
+    "eye_levels_v",
+    "eye_openings_v"
+   ]
+  }
+ }
+}
