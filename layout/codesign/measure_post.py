@@ -27,7 +27,6 @@ Hand-run:  echo '{"pex_netlist": ".../x_k25d_pex_netlist.spice", "work_dir":
 """
 from __future__ import annotations
 
-import json
 import os
 import sys
 
@@ -66,10 +65,13 @@ def _f3db(f: np.ndarray, s21: np.ndarray, lf: float) -> float:
 
 
 def _edge(f: np.ndarray, s: np.ndarray, level: float = -10.0) -> float:
-    """Frequency up to which s stays below `level` (grid-independent)."""
+    """Frequency up to which s stays below `level`: the first upward crossing,
+    interpolated between grid points (grid-independent)."""
     for i in range(len(f)):
         if s[i] > level:
-            return float(f[i - 1]) if i else 0.0
+            if i == 0:
+                return 0.0
+            return float(np.interp(level, [s[i - 1], s[i]], [f[i - 1], f[i]]))
     return float(f[-1])
 
 

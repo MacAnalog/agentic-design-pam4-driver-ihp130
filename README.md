@@ -5,8 +5,11 @@ modulator driver — a block-level replication of *Inac et al., "Inductorless
 96 Gb/s PAM-4 Optical Modulators Driver in SiGe:C BiCMOS," EuMIC 2022* on
 the open IHP SG13G2 PDK — taken from netlist to DRC/LVS-clean parameterized
 layout, kpex extraction, and a layout + electrical co-optimization that
-closes **all eight post-layout specs**. The audit trail is three executed
-notebooks; every result below reproduces from this repo.
+closes **all eight post-layout specs** — first with a block-local optimizer
+(v2), then by running the paper's **layout/schematic co-design algorithm
+through the SpiceXplorer platform** (`spicexplorer-optimize`,
+`sim_engine: layout`; v3, the layout of record). The audit trail is four
+executed notebooks; every result below reproduces from this repo.
 
 ## The layout journey
 
@@ -27,7 +30,31 @@ R_C=50 Ω) — the odd v1 sizing had been compensating layout parasitics.
 | output-network fixes | bus gap 1.8→8 µm, min-width TM1, slim risers/via stacks, ±1.5 µm overhang, compacted row | S22 −8.4 → **−10.14** at R_C=50 |
 | input-network fixes | center-fed H-tree R_B (kills the far-MSB-cell ~80 µm stub), Metal4 buses with MSB rows innermost, 3 µm pair gap, Metal2 base drops | msb S11 at nx=3: −8.8 → −9.9 |
 | electrical re-tune | tail 15 mA, R_B 48, V_casc 3.35, and **R_E 2.5→3.2 Ω** — series feedback shrinks the effective input C (the HBT model scales with Nx only) | S11 **−10.03** ✓ with gain 8.25 ✓ |
-| verify | kpex RC mode ≡ CC mode to 0.01 dB; DRC + LVS clean on all 3 DUTs | point frozen as `gen_layout.FINAL_LAYOUT` |
+| verify | kpex RC mode ≡ CC mode to 0.01 dB; DRC + LVS clean on all 3 DUTs | point frozen as v2 (`gen_layout.V2_LAYOUT`) |
+
+### v3 — co-design through the platform (2026-08-18)
+
+Running the same loop *through* `spicexplorer-optimize` (Algorithm 1 of the
+TCAS paper: agent owns the generator + bounds, platform owns the search,
+DRC/LVS as gates; `layout/codesign/`) first fixed the **instrument** — the
+v2 "−10.03 / −10.14" were the worst points of a `dec 20` grid that never
+samples 32 / 50 GHz; at the band edges v2 reads **−9.94 / −9.24 dB and
+fails both reflection specs** — and the extractor's 8 µm sidewall halo
+(`out_gap` sat on it; now `pex.halo_um: 20`). Round 1 (120 trials) skipped
+47 % of its budget on generator DRC bugs → three guards; round 2 turned the
+layout review into five **structural INT knobs** (`bus_trim`, `sub_bus`,
+`cell_order`, `c_strip`, `out_split`) and found the accepted point:
+
+![before/after co-design](layout/codesign/before_after.png)
+
+| | v2 (record) | **v3 accepted** |
+|---|---|---|
+| S11 @32 GHz / S22 @50 GHz | −9.94 / −9.24 dB ✗✗ | **−10.05 / −10.72 dB** ✅✅ (halo 20: −10.07 / −10.78) |
+| gain LSB / MSB, BW, swing, power | 2.27 / 8.25 dB, 58.8 GHz, 2.21 Vpp, 179 mW | 2.23 / 8.21 dB, 61.1 GHz, 2.26 Vpp, 190 mW |
+| core area | 7552 µm² | **6880 µm²** (−9 %; −39 % vs the paper's 11 300) |
+
+Full story, rounds table, ceiling analysis and the annotated parameterized
+layout: [layout/codesign/README.md](layout/codesign/README.md); notebook 04.
 
 Open pre-tapeout items from the review (vcasc bypass/stability, EM current
 density, ground cage, matching dummies) are tracked in
@@ -35,17 +62,24 @@ density, ground cage, matching dummies) are tracked in
 
 ## Results
 
-| metric (post-layout `pam4`, kpex 2.5D) | paper (meas.) | EIC ref (schem) | **this repo (post-layout)** | spec |
-|---|---|---|---|---|
-| LSB / MSB LF gain | 3.2 / 9.2 dB | 3.10 / 9.07 | **2.27 / 8.25 dB** | ≥ 2.2 / ≥ 8.2 ✅ |
-| DAC weight | 6.0 dB | 5.97 | **5.98 dB** | ≥ 5.0 ✅ |
-| Bandwidth (worst path) | 51–67 GHz | 68.5 | **58.8 GHz** | ≥ 50 ✅ |
-| S11 (≤32 GHz) | < −10 | −10.87 | **−10.03 dB** | ≤ −10 ✅ |
-| S22 (≤50 GHz) | < −10 | −14.76 | **−10.14 dB** | ≤ −10 ✅ |
-| Max diff swing | 2.1 Vpp | 2.92 | **2.21 Vpp** | ≥ 2.1 ✅ |
-| Power | 192 mW | 191 | **179 mW @ 4 V** | ≤ 192 ✅ |
-| 48 GBd PAM-4 eye | Fig. 5 | RLM 0.975 | **RLM 0.974, ~0.24 V eyes** | open ✅ |
-| Core area | 0.011 mm² | — | **0.0076 mm²** (99.6 × 75.8 µm) | — |
+| metric (post-layout `pam4`, kpex 2.5D) | paper (meas.) | EIC ref (schem) | v2 (2026-08-09) | **v3 (layout of record)** | spec |
+|---|---|---|---|---|---|
+| LSB / MSB LF gain | 3.2 / 9.2 dB | 3.10 / 9.07 | 2.27 / 8.25 dB | **2.23 / 8.21 dB** | ≥ 2.2 / ≥ 8.2 ✅ |
+| DAC weight | 6.0 dB | 5.97 | 5.98 dB | **5.97 dB** | ≥ 5.0 ✅ |
+| Bandwidth (worst path) | 51–67 GHz | 68.5 | 58.8 GHz | **61.1 GHz** | ≥ 50 ✅ |
+| S11 at 32 GHz | < −10 | −10.87 | −9.94 dB ✗ | **−10.05 dB** | ≤ −10 ✅ |
+| S22 at 50 GHz | < −10 | −14.76 | −9.24 dB ✗ | **−10.72 dB** | ≤ −10 ✅ |
+| Max diff swing | 2.1 Vpp | 2.92 | 2.21 Vpp | **2.26 Vpp** | ≥ 2.1 ✅ |
+| Power | 192 mW | 191 | 179 mW @ 4 V | **190 mW @ 4 V** | ≤ 192 ✅ |
+| 48 GBd PAM-4 eye | Fig. 5 | RLM 0.975 | RLM 0.974, ~0.24 V eyes | **RLM 0.974, ~0.24 V eyes** | open ✅ |
+| Core area | 0.011 mm² | — | 0.0076 mm² | **0.0069 mm²** (97.6 × 70.5 µm) | — |
+
+S11/S22 are the worst in-band values *including the interpolated 32 / 50 GHz
+band edge* (kpex CC, tech halo 8 µm — the block's default instrument; the
+v2 column is the record re-measured that way, see the v3 section above).
+Both columns through the same `driver_lib` benches (notebook 04 §5):
+
+![v2 vs v3 S-parameters](notebooks/report_figs/sparams_v2_v3_post_layout.png)
 
 **48 GBaud PAM-4 eye** — nominal schematic vs re-tuned schematic vs
 parasitic-extracted layout, same testbench:
@@ -73,6 +107,7 @@ notebooks (committed `.ipynb`) contain every table and figure inline:
 | [01_schematic_sizing](notebooks/01_schematic_sizing.ipynb) | DUT schematics, testbenches, nominal sizing, bias/S-param/eye vs the verified reference |
 | [02_layout_in_the_loop](notebooks/02_layout_in_the_loop.ipynb) | gdsfactory generation, DRC/LVS, kpex, co-optimization with the **full 8-spec objective** |
 | [03_signoff](notebooks/03_signoff.ipynb) | DC/tran/AC/eye on schematic **and** post-layout through the *same* benches; master spec table; `emitter_width=0.07` validity proof |
+| [04_codesign_platform](notebooks/04_codesign_platform.ipynb) | the platform co-design record (`layout/codesign/results/`): per-round trial scatter / skip rates, round-by-round scorecard vs the honest baseline, moved knobs, annotated parameterized layout + before/after + rounds strip |
 
 ## Repo map
 
@@ -81,9 +116,12 @@ dut/          three DUT subcircuits (lsb / msb / pam4 2-bit DAC)
 netlists/     static, directly runnable ngspice decks (+ .spiceinit)
 testbenches/  driver_lib.py — netlist-agnostic benches (schematic AND
               post-layout via dut_ref=), run_verify.py, run_eye.py
-layout/       gen_layout.py (parameterized generator, FINAL_LAYOUT),
-              signoff.py (DRC+LVS, vendored PDK runner), pex_sim.py (kpex),
-              optimize_layout.py, LAYOUT_REVIEW.md, before_after.png,
+layout/       gen_layout.py (parameterized generator, FINAL_LAYOUT = v3,
+              V2_LAYOUT), signoff.py (DRC+LVS, vendored PDK runner),
+              pex_sim.py (kpex), optimize_layout.py (block-local v1/v2 loop),
+              LAYOUT_REVIEW.md, before_after.png (v1 -> v2),
+              codesign/ (Alg. 1 through spicexplorer-optimize: flow.yaml,
+              project_setup.yaml, measure hook, rounds/, results/, figures),
               out/ (final GDS, netlists, PEX, renders)
 notebooks/    jupytext .py sources + executed .ipynb + report_figs/
 results/      committed characterization plots + metrics YAML

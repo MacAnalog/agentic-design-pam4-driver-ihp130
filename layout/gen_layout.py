@@ -491,7 +491,8 @@ def place_cell(c: gf.Component, X: float, y0: float, p: LayoutParams,
         stack(c, qcx, ybus, "Metal2", out_layer_of(p, net), p.stack_w)
         risers.append((qcx, net))
 
-    return {"drops": drops, "risers": risers,
+    return {"drops": drops, "risers": risers, "e_y": e_y,
+            "y_re_top": y_re_top, "dy_re": dy_re,
             "vcasc_x": (bx3 - span / 2 - 0.97, bx4 + span / 2 + 0.97),
             "vcasc_y": by3}
 
@@ -652,12 +653,14 @@ def build_dut(dut: str, p: LayoutParams = LayoutParams()):
     in_L = in_bus_layer_of(p)
     rb_comp = C.rsil(dx=p.rb_w, dy=dy_rb)
     x_bus_lo_all, x_bus_hi_all = 1e9, -1e9
+    bus_xrange: dict = {}
     for net in spec["inputs"]:
         xr = rb_x[net]
         # bus spans the R_B column and every drop of that net
         net_drops = [x for info in infos for x, nd in info["drops"] if nd == net]
         xs_all = (net_drops if net_drops else [x_drop_max]) + [xr]
         x_lo, x_hi = min(xs_all) - 1.0, max(xs_all) + 1.0
+        bus_xrange[net] = (x_lo, x_hi)
         x_bus_lo_all = min(x_bus_lo_all, x_lo)
         x_bus_hi_all = max(x_bus_hi_all, x_hi)
         rect(c, f"{in_L}drawing", x_lo,
@@ -789,7 +792,21 @@ def build_dut(dut: str, p: LayoutParams = LayoutParams()):
     c.add_label(text="sub", position=((x0r + x1r) / 2, y0r + rw / 2),
                 layer="Metal1text")
 
-    return c, rec, {"y_vcc": y_vcc, "area": None}
+    # geometry record for the figure tooling (codesign/figures.py): every
+    # position an annotation needs, so figures cannot drift from the layout
+    geo = {"Xs": Xs, "H": H, "half": half, "dev_cx": p.gap_x / 2 + half,
+           "span": span, "y0": y0, "y1": y1, "cells": cells,
+           "y_tail": y_tail, "bus_y": bus_y, "bus_xrange": bus_xrange,
+           "rb_x": rb_x, "y_rb_p1": y_rb_p1, "y_rb_p2": y_rb_p2,
+           "y_vcmb": y_vcmb, "y_sub": y_sub, "y_outP": y_outP,
+           "y_outN": y_outN, "y_rc_p1": y_rc_p1, "y_rc_p2": y_rc_p2,
+           "y_vcc": y_vcc, "bus_x": bus_x, "gap_xs": gap_xs,
+           "ring_top": y1r - rw, "ring": (x0r, y0r, x1r, y1r),
+           "risers": [r for info in infos for r in info["risers"]],
+           "drops": [d for info in infos for d in info["drops"]],
+           "e_y": infos[0]["e_y"], "y_re_top": infos[0]["y_re_top"],
+           "dy_re": infos[0]["dy_re"]}
+    return c, rec, {"y_vcc": y_vcc, "area": None, "geo": geo}
 
 
 # ---------------------------------------------------------------- netlists
@@ -958,12 +975,29 @@ def write_sim_netlist(p: LayoutParams, out: str) -> str:
 # input, M4 input buses, M2 base drops, light/wide-gap TM1 output buses,
 # compacted row). R_E rises 2.5->3.2 ohm (S11: degeneration shrinks the
 # effective input C); tail drops 16->15 mA/cell.
-FINAL_LAYOUT = dict(nx=3, rc_ohm=50.0, rb_ohm=48.0, re_ohm=3.2, cdeg_ff=16.0,
-                    re_w=4.5, out_gap=8.0, out_w=1.64, w_out=1.5, rc_sep=4.0,
-                    stack_w=1.7, input_feed="center", in_bus_gap=3.0,
-                    in_off=2.2, in_bus_layer="Metal4", gap_x=6.0,
-                    cell_gap=5.0, drop_layer="Metal2")
-FINAL_BIASES = {"vcc": 4.0, "vcasc": 3.35, "vcmb": 1.9, "tail_ma": 15.0}
+# v2 layout of record (2026-08-09 signoff) — kept as the "before" of the
+# co-design rounds (codesign/README.md, figures.py, compare_layouts.py)
+V2_LAYOUT = dict(nx=3, rc_ohm=50.0, rb_ohm=48.0, re_ohm=3.2, cdeg_ff=16.0,
+                 re_w=4.5, out_gap=8.0, out_w=1.64, w_out=1.5, rc_sep=4.0,
+                 stack_w=1.7, input_feed="center", in_bus_gap=3.0,
+                 in_off=2.2, in_bus_layer="Metal4", gap_x=6.0,
+                 cell_gap=5.0, drop_layer="Metal2")
+V2_BIASES = {"vcc": 4.0, "vcasc": 3.35, "vcmb": 1.9, "tail_ma": 15.0}
+
+# v3 = the point accepted from co-design round 2 (codesign/results/r2/
+# summary.json, island s3 trial 38 — the argmin of the paper's J over the
+# 8 signoff specs + DRC/LVS/PEX gates + I_C validity, measured at the exact
+# 32/50 GHz band edges with kpex CC halo 20). Every knob is an optimizer
+# output; the five structural options are the round-2 review's.
+FINAL_LAYOUT = dict(nx=3, rc_ohm=46.51, rb_ohm=49.92, re_ohm=3.24,
+                    cdeg_ff=18.45, re_w=4.61, rc_w=1.01, rb_w=0.58,
+                    gap_x=5.5, row_gap=1.74, cell_gap=4.76, out_gap=6.37,
+                    out_w=1.65, w_out=1.54, out_off=2.3, rc_sep=4.64,
+                    in_off=2.23, in_bus_gap=3.03, sub_off=1.34, stack_w=1.52,
+                    c_strip=2, bus_trim=1, out_split=1, sub_bus=1,
+                    cell_order=1, input_feed="center", in_bus_layer="Metal4",
+                    drop_layer="Metal2")
+FINAL_BIASES = {"vcc": 4.0, "vcasc": 3.31, "vcmb": 1.9, "tail_ma": 15.93}
 
 
 def main() -> None:
@@ -971,10 +1005,13 @@ def main() -> None:
     ap.add_argument("--dut", default="all",
                     choices=["lsb", "msb", "pam4", "all"])
     ap.add_argument("--params", default=None,
-                    help='JSON overrides for LayoutParams, e.g. {"gap_x": 8}')
+                    help='JSON overrides on FINAL_LAYOUT, e.g. {"gap_x": 8}')
+    ap.add_argument("--defaults", action="store_true",
+                    help="start from the LayoutParams defaults instead of FINAL_LAYOUT")
     ap.add_argument("--out-dir", default=os.path.join(HERE, "out"))
     a = ap.parse_args()
-    p = LayoutParams(**json.loads(a.params)) if a.params else LayoutParams()
+    base = {} if a.defaults else dict(FINAL_LAYOUT)
+    p = LayoutParams(**{**base, **(json.loads(a.params) if a.params else {})})
     duts = ["lsb", "msb", "pam4"] if a.dut == "all" else [a.dut]
     for d in duts:
         generate(d, p, a.out_dir)

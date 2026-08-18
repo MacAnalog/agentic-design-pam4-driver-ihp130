@@ -77,6 +77,7 @@ def main() -> None:
     ap.add_argument("--round", required=True)
     ap.add_argument("dirs", nargs="+")
     ap.add_argument("--out", default=os.path.join(HERE, "results"))
+    ap.add_argument("--instrument", default="", help="how the metrics were measured (recorded in summary.json)")
     a = ap.parse_args()
     rows = load_runs(a.dirs)
     out = os.path.join(a.out, a.round)
@@ -87,7 +88,7 @@ def main() -> None:
     ok = [r for r in rows if r["status"] == "ok"]
     feas = [r for r in rows if r["feasible"]]
     best = max(rows, key=lambda r: r["score"]) if rows else None
-    summ = {"round": a.round, "n_trials": len(rows), "n_ok": len(ok),
+    summ = {"round": a.round, "instrument": a.instrument, "n_trials": len(rows), "n_ok": len(ok),
             "n_feasible": len(feas),
             "n_status": {s: sum(1 for r in rows if r["status"] == s)
                          for s in sorted({r["status"] for r in rows})},

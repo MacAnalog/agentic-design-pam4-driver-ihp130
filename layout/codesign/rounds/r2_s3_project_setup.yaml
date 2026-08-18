@@ -43,10 +43,10 @@
 #       band-edge instrument + kpex halo 20. init = the layout of record
 #       (the r1 "winner" was an artefact of the halo cliff + grid, so the
 #       honest re-baseline is the start): trial 1 must read -9.98 / -9.36.
-#       Islands: s0/s1 OnePlusOne, s2 TwoPointsDE, 40 trials each, plus s3 =
-#       a multi-start island (rounds/r2_s3_project_setup.yaml: same bounds,
-#       init with the five structural knobs at the review's recommended
-#       values c_strip 2 / bus_trim, out_split, sub_bus, cell_order 1).
+#       Islands: s0/s1 OnePlusOne, s2 TwoPointsDE, 40 trials each; s3 =
+#       THIS multi-start variant (rounds/r2_s3_project_setup.yaml): same
+#       bounds, init with the five structural knobs at the review's
+#       recommended values (c_strip 2, bus_trim/out_split/sub_bus/cell_order 1).
 project:
   name: PAM4-DRIVER-CODESIGN
   description: sizing + layout co-design of the PAM-4 driver DAC (IHP SG13G2) for post-layout S11/S22 margin under the eight signoff specs
@@ -55,7 +55,7 @@ project:
   parallel_sim: false
   sim_engine: layout
 
-  ws_root: .
+  ws_root: ..              # this file lives in rounds/; the flow + measure hook are one level up
   netlist: flow.yaml         # the DUT "netlist" is the layout-flow spec
   outdir: temp_spice_out     # <outdir>/layout/<testbench>/run_<n>_<label>/{pam4drv_pam4_lay.gds, drc/, lvs/, pex/, measure.log, summary.json}
 
@@ -106,11 +106,11 @@ project:
     # round-2 structural options"); INT knobs so the search, not the author,
     # picks the floorplan variant. 0 = the round-1 geometry for every one.
     # ------------------------------------------------------------------
-    - { name: c_strip,    min_val: 0, max_val: 2, init: 0, is_integer: true, description: "cascode-collector M2 tap: 0 full strip | 1 upper-half strip | 2 riser-width tab (outp<->c1 sidewall C)" }
-    - { name: bus_trim,   min_val: 0, max_val: 1, init: 0, is_integer: true, description: "1 = each output bus spans only its own risers + RC (-16 um TM1, shorter outp||outn run)" }
-    - { name: out_split,  min_val: 0, max_val: 1, init: 0, is_integer: true, description: "1 = outn bus on TopMetal2 (kills TM1 bus<->bus sidewall C)" }
-    - { name: sub_bus,    min_val: 0, max_val: 1, init: 0, is_integer: true, description: "0 = Metal3 substrate bus | 1 = taps tie to the ring on Metal1 (no bus under the output risers)" }
-    - { name: cell_order, min_val: 0, max_val: 1, init: 0, is_integer: true, description: "0 = M0|L0|M1 | 1 = M0|M1|L0 (shorter MSB input bus)" }
+    - { name: c_strip,    min_val: 0, max_val: 2, init: 2, is_integer: true, description: "cascode-collector M2 tap: 0 full strip | 1 upper-half strip | 2 riser-width tab (outp<->c1 sidewall C)" }
+    - { name: bus_trim,   min_val: 0, max_val: 1, init: 1, is_integer: true, description: "1 = each output bus spans only its own risers + RC (-16 um TM1, shorter outp||outn run)" }
+    - { name: out_split,  min_val: 0, max_val: 1, init: 1, is_integer: true, description: "1 = outn bus on TopMetal2 (kills TM1 bus<->bus sidewall C)" }
+    - { name: sub_bus,    min_val: 0, max_val: 1, init: 1, is_integer: true, description: "0 = Metal3 substrate bus | 1 = taps tie to the ring on Metal1 (no bus under the output risers)" }
+    - { name: cell_order, min_val: 0, max_val: 1, init: 1, is_integer: true, description: "0 = M0|L0|M1 | 1 = M0|M1|L0 (shorter MSB input bus)" }
 
   testbenches:
     - name: layout

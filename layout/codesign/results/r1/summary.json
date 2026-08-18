@@ -1,5 +1,6 @@
 {
  "round": "r1",
+ "instrument": "r1: worst in-band S-parameter on the ngspice dec-20 grid (last in-band points 31.62/44.67 GHz); kpex 2.5D CC, tech halo 8 um",
  "n_trials": 120,
  "n_ok": 64,
  "n_feasible": 6,

@@ -3,7 +3,8 @@
 
 Regenerates the pam4 DUT at the notebook-02 v1 point (nx=2, R_C=70 on the
 original edge-fed floorplan — reconstructed via the LayoutParams defaults)
-and at the signed-off final point (`gen_layout.FINAL_LAYOUT`), renders
+and at the v2 signed-off point (`gen_layout.V2_LAYOUT`; the v3 co-design
+figures live in codesign/figures.py), renders
 both, and composes the annotated side-by-side written next to this script
 as ``before_after.png``.
 
@@ -71,7 +72,7 @@ def main() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         pngs = {}
         for tag, params in (("before", V1),
-                            ("after", gen_layout.FINAL_LAYOUT)):
+                            ("after", gen_layout.V2_LAYOUT)):
             gen_layout.generate("pam4", gen_layout.LayoutParams(**params),
                                 os.path.join(tmp, tag))
             pngs[tag] = os.path.join(tmp, f"{tag}.png")

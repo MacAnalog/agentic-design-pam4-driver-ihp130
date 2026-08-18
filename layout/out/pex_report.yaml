@@ -3,79 +3,79 @@ lsb:
   pex_mode: CC
   pre:
     in:
-      s21_lf_db: 2.944
+      s21_lf_db: 2.245
       f3db_ghz: 100.0
-      s11_worst_db: -16.47
+      s11_worst_db: -16.65
       power_mw: 63.64
   post:
     in:
-      s21_lf_db: 2.944
-      f3db_ghz: 96.32
-      s11_worst_db: -15.18
+      s21_lf_db: 2.245
+      f3db_ghz: 100.0
+      s11_worst_db: -15.66
       power_mw: 63.64
   delta:
     in:
       s21_lf_db: 0.0
-      f3db_ghz: -3.68
-      s11_worst_db: 1.29
+      f3db_ghz: 0.0
+      s11_worst_db: 0.99
       power_mw: 0.0
-  n_parasitics: 52
+  n_parasitics: 54
 msb:
   dut: msb
   pex_mode: CC
   pre:
     in:
-      s21_lf_db: 8.917
-      f3db_ghz: 69.36
-      s11_worst_db: -10.98
+      s21_lf_db: 8.22
+      f3db_ghz: 71.84
+      s11_worst_db: -11.14
       power_mw: 127.29
   post:
     in:
-      s21_lf_db: 8.917
-      f3db_ghz: 58.39
-      s11_worst_db: -9.52
+      s21_lf_db: 8.219
+      f3db_ghz: 65.84
+      s11_worst_db: -10.19
       power_mw: 127.29
   delta:
     in:
-      s21_lf_db: 0.0
-      f3db_ghz: -10.97
-      s11_worst_db: 1.46
+      s21_lf_db: -0.001
+      f3db_ghz: -6.0
+      s11_worst_db: 0.95
       power_mw: 0.0
-  n_parasitics: 84
+  n_parasitics: 86
 pam4:
   dut: pam4
   pex_mode: CC
   pre:
     lsb:
-      s21_lf_db: 2.948
-      f3db_ghz: 92.58
-      s11_worst_db: -16.47
+      s21_lf_db: 2.249
+      f3db_ghz: 96.07
+      s11_worst_db: -16.65
       power_mw: 190.96
     msb:
-      s21_lf_db: 8.919
-      f3db_ghz: 66.75
-      s11_worst_db: -10.98
+      s21_lf_db: 8.222
+      f3db_ghz: 69.21
+      s11_worst_db: -11.14
       power_mw: 190.96
   post:
     lsb:
-      s21_lf_db: 2.948
-      f3db_ghz: 66.11
-      s11_worst_db: -13.77
+      s21_lf_db: 2.249
+      f3db_ghz: 82.3
+      s11_worst_db: -15.06
       power_mw: 190.96
     msb:
-      s21_lf_db: 8.919
-      f3db_ghz: 51.07
-      s11_worst_db: -8.91
+      s21_lf_db: 8.221
+      f3db_ghz: 60.91
+      s11_worst_db: -10.02
       power_mw: 190.96
   delta:
     lsb:
       s21_lf_db: 0.0
-      f3db_ghz: -26.47
-      s11_worst_db: 2.7
+      f3db_ghz: -13.77
+      s11_worst_db: 1.59
       power_mw: 0.0
     msb:
-      s21_lf_db: 0.0
-      f3db_ghz: -15.68
-      s11_worst_db: 2.07
+      s21_lf_db: -0.001
+      f3db_ghz: -8.3
+      s11_worst_db: 1.12
       power_mw: 0.0
-  n_parasitics: 135
+  n_parasitics: 126

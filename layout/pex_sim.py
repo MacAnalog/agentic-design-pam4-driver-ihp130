@@ -203,6 +203,10 @@ def wrap_layout_dut(dut: str, subckt_path: str) -> str:
     lines.append("Vsub sub 0 DC 0")
     lines.append(f".ends pam4drv_{dut}")
     lines.append(f'.include "{os.path.abspath(subckt_path)}"')
+    # kpex RC / R modes leave floating R-islands (split nets) -> singular
+    # matrix without a shunt conductance to ground
+    if any(l[:1] == "R" for l in open(subckt_path)):
+        lines.append(".options rshunt=1e10")
     lines.append('.lib "cornerRES.lib" res_typ')
     lines.append('.lib "cornerCAP.lib" cap_typ')
     return "\n".join(lines) + "\n"

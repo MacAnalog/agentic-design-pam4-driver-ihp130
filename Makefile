@@ -25,7 +25,7 @@ RUN       = $(ENV) uv run
 # kpex -> ngspice); the committed result used the default of 8.
 NB_BUDGET ?= 8
 
-.PHONY: all sync verify eye signoff notebooks nb01 nb02 nb03 clean
+.PHONY: all sync verify eye signoff notebooks nb01 nb02 nb03 nb04 clean
 
 all: verify eye signoff notebooks
 
@@ -41,7 +41,7 @@ eye:
 signoff:
 	cd layout && $(RUN) python signoff.py
 
-notebooks: nb01 nb02 nb03
+notebooks: nb01 nb02 nb03 nb04
 
 nb01:
 	cd notebooks && $(RUN) jupytext --to notebook --execute 01_schematic_sizing.py
@@ -51,6 +51,9 @@ nb02:
 
 nb03:
 	cd notebooks && $(RUN) jupytext --to notebook --execute 03_signoff.py
+
+nb04:
+	cd notebooks && $(RUN) jupytext --to notebook --execute 04_codesign_platform.py
 
 clean:
 	rm -rf notebooks/nb_opt notebooks/*.ipynb layout/out/signoff
