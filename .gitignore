@@ -27,3 +27,6 @@ notebooks/nb_opt/
 *.log
 # ngspice raw outputs:
 *.raw
+# co-design runs (per-trial GDS/DRC/LVS/PEX artifacts) — harvested into layout/codesign/results/
+layout/codesign/runs/
+layout/codesign/logs/

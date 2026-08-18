@@ -665,6 +665,37 @@ def build_dut(dut: str, p: LayoutParams = LayoutParams()):
 
 
 # ---------------------------------------------------------------- netlists
+def device_records(dut: str, p: LayoutParams) -> dict:
+    """The device records (`rec`) of ``build_dut(dut, p)`` WITHOUT drawing anything.
+
+    Names, nets and sizes are pure functions of the DUT and the params, so the
+    LVS / kpex / sim netlist writers (which the optimizer's layout backend runs
+    per trial in their own subprocess) do not need to place a single PyCell.
+    ``test_records_match_build`` in ``tests/`` pins the equivalence."""
+    spec = DUTS[dut]
+    rec = {"hbt": [], "res": [], "cap": []}
+    dy_re = res_len(p.re_ohm, p.re_w)
+    dy_rb = res_len(p.rb_ohm, p.rb_w)
+    dy_rc = res_len(p.rc_ohm, p.rc_w)
+    w_eff = snap(cap_drawn_w(p.cdeg_ff) + CMIM_EXT)
+    for prefix, group, tail in spec["cells"]:
+        inp, inn = input_nets_of(dut, group)
+        rec["hbt"] += [
+            (f"Q1{prefix}", f"c1{prefix}", inp, f"e1{prefix}"),
+            (f"Q2{prefix}", f"c2{prefix}", inn, f"e2{prefix}"),
+            (f"Q3{prefix}", "outp", "vcasc", f"c1{prefix}"),
+            (f"Q4{prefix}", "outn", "vcasc", f"c2{prefix}"),
+        ]
+        rec["res"].append((f"RE1{prefix}", f"e1{prefix}", tail, p.re_w, dy_re))
+        rec["res"].append((f"RE2{prefix}", f"e2{prefix}", tail, p.re_w, dy_re))
+        rec["cap"].append((f"Cdeg{prefix}", f"e2{prefix}", f"e1{prefix}", w_eff))
+    for net in spec["inputs"]:
+        rec["res"].append((f"Rb{net}", net, "vcmb", p.rb_w, dy_rb))
+    for net in ("outp", "outn"):
+        rec["res"].append((f"Rc{net[-1]}", net, "vcc", p.rc_w, dy_rc))
+    return rec
+
+
 def ports_of(dut: str) -> list[str]:
     spec = DUTS[dut]
     tails = [t for _, _, t in spec["cells"]]
@@ -746,6 +777,48 @@ def generate(dut: str, p: LayoutParams, out_dir: str) -> dict:
           f"bbox {b.right - b.left:.1f} x {b.top - b.bottom:.1f} um, "
           f"area {area:.0f} um2")
     return {"gds": gds, "area_um2": area, "cell": DUTS[dut]["subckt"]}
+
+
+# --------------------------------------------- spicexplorer_layout contract
+# `spicexplorer.backends.layout` (sim_engine: layout) drives this module through
+# the generator contract: `LayoutParams` (above, every field a knob),
+# `build(params, sizing) -> Component`, and the per-trial netlist writers.
+# The co-design flow (codesign/flow.yaml) targets the pam4 DUT — the summing
+# node, S22, swing and DAC weight only exist there; CODESIGN_DUT selects it.
+CELL = DUTS["pam4"]["subckt"]
+CODESIGN_DUT = os.environ.get("PAM4_CODESIGN_DUT", "pam4")
+
+
+def build(p: LayoutParams = LayoutParams(), sizing: dict | None = None):
+    """Generator-contract entry: the flattened pam4 (or CODESIGN_DUT) component.
+    `sizing` is unused — the electrical sizing knobs (nx, re/rc/rb_ohm,
+    cdeg_ff) are LayoutParams fields because they draw geometry."""
+    gf.clear_cache()
+    comp, _rec, _meta = build_dut(CODESIGN_DUT, p)
+    comp.flatten()
+    return comp
+
+
+def write_lvs_reference(p: LayoutParams, out: str) -> str:
+    """KLayout-LVS reference (2-terminal rsil) for this candidate."""
+    with open(out, "w") as f:
+        f.write(lvs_netlist(CODESIGN_DUT, device_records(CODESIGN_DUT, p), p))
+    return out
+
+
+def write_pex_schematic(p: LayoutParams, out: str) -> str:
+    """kpex-flavour schematic (3-terminal rsil) for this candidate; the
+    layout backend strips the C cards itself when `pex.strip_mim` is set."""
+    with open(out, "w") as f:
+        f.write(kpex_netlist(CODESIGN_DUT, device_records(CODESIGN_DUT, p), p))
+    return out
+
+
+def write_sim_netlist(p: LayoutParams, out: str) -> str:
+    """Pre-layout sim netlist (same devices on the PDK models, no wiring)."""
+    with open(out, "w") as f:
+        f.write(sim_netlist(CODESIGN_DUT, device_records(CODESIGN_DUT, p), p))
+    return out
 
 
 # --------------------------------------------------------------- final point
