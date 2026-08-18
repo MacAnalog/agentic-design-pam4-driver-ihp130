@@ -287,7 +287,8 @@ def _save(fig, out: str, dpi: int) -> None:
     fig.savefig(out, dpi=dpi)
     root, ext = os.path.splitext(out)
     if ext.lower() != ".pdf":
-        fig.savefig(root + ".pdf")
+        with plt.rc_context({"pdf.fonttype": 42}):     # TrueType, not Type 3 (IEEE PDF check)
+            fig.savefig(root + ".pdf")
 
 
 def _metrics_of(path: str | None) -> dict | None:
