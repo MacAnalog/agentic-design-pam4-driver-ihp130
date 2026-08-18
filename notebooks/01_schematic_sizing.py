@@ -103,10 +103,11 @@ for d in ("lsb", "msb", "pam4"):
 # %% [markdown]
 # ## Testbenches
 #
-# The AC bench below (S21 as differential power-wave gain `2*Vout/Vsrc` into
-# 50 ohm/side, S11 via `Zin = Vin/Iin` against the 100 ohm differential
-# reference — the paper's VNA conventions). The transient golden bench is the
-# same DUT with PWL-ramped supplies and a single-tone probe.
+# The AC bench below uses ngspice's built-in S-parameter analysis (`sp`, port
+# sources with z0 = 50 ohm/side; differential Sdd21 / Sdd11 formed from the p/n
+# port pairs — the paper's VNA conventions, 100 ohm differential reference).
+# The transient golden bench is the same DUT with PWL-ramped supplies and a
+# single-tone probe.
 
 # %%
 _, sub, _ = dl.dut_subckt("msb", DriverParams())

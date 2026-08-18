@@ -38,15 +38,19 @@ isolates what the layout alone costs. Both are the same GDS floorplan.
   halo 8 µm — the block's default instrument. (`layout/out/pex/metrics_v3_*.json`
   shows halo 20 and RC mode for v3: −10.07 / −10.78, RC ≡ CC.) The converted
   post-layout netlist the benches run on is `layout/<tier>/dut_pam4_post.spice`.
-* **S-parameters**: `.op` + `.ac dec 100` (ngspice-45), differential power-wave
-  S21/S11 into 50 Ω/side (paper VNA convention), S22 differential; the table
+* **S-parameters**: `.op` + ngspice's built-in S-parameter analysis (`sp dec 100`,
+  ngspice-45; port sources `portnum`/`z0 50`, mixed-mode Sdd21 / Sdd11 / Sdd22
+  over the p/n port pairs = 50 Ω/side, the paper's VNA convention; the legacy
+  in-deck power-wave algebra agrees to all printed digits — `verification/`); the table
   quotes the **worst in-band value including the interpolated band edge**
   (32 GHz for S11, 50 GHz for S22 — `measure_post._band_max`) and the
   frequency to which −10 dB holds (`_edge`, interpolated). Older repo numbers
   read off the `dec 20` grid (last in-band points 31.62 / 44.67 GHz) are
   *not* used anywhere in this report.
-* **Balance**: same AC bench, MSB drive, |V_p|−|V_n| (dB), phase(V_p/V_n)−180°,
-  and 20 log|V_p+V_n|/|V_p−V_n| (diff→CM conversion); worst value ≤ 48 GHz.
+* **Balance**: from the same 4-port S-matrix, MSB drive: the two output waves
+  under differential drive (2·V_p = ½(S31−S32), 2·V_n = ½(S41−S42)) → |V_p|−|V_n|
+  (dB), phase(V_p/V_n)−180°, and 20 log|V_p+V_n|/|V_p−V_n| (diff→CM conversion);
+  worst value ≤ 48 GHz.
 * **DC / swing**: `.dc` differential sweep, both ports driven in phase, ±0.9 V
   source EMF; swing = max−min of the differential output.
 * **Power**: ramp-and-hold transient bias probe, mean |I(VCC)| × 4 V.

@@ -15,10 +15,13 @@ drawings staging area. Differences from the EIC original:
   - ``tran``: ramp-from-0 ``uic`` + single-tone probe + single-bin DFT
     (the EIC-validated method, required on ngspice-44 where the
     self-heating VBIC HBT fails .op/.ac — JPP-361);
-  - ``ac``: direct .op/.ac (converges on ngspice-45 and matches the
-    transient DFT to <0.1 dB; ~30x cheaper for a frequency sweep).
+  - ``ac``/``sp``: direct .op + ngspice's built-in S-parameter analysis
+    (`sp`, port sources with z0 = 50 ohm; converges on ngspice-45 and matches
+    the transient DFT to <0.1 dB; ~30x cheaper for a frequency sweep). The
+    legacy in-deck power-wave algebra is kept as ``method="algebra"`` and
+    agrees to all printed digits (verification/README.md).
 
-S21 is a differential 2-port power-wave gain with equal 50 ohm/side
+S21 / S11 / S22 are differential (mixed-mode Sdd) with equal 50 ohm/side
 (100 ohm differential) reference at both ports — the paper's VNA convention,
 NOT the open-circuit voltage gain.
 
@@ -395,46 +398,88 @@ def tb_bias(dut: str, dut_ref: str, *, dp: DriverParams | None = None,
     return "\n".join(lines) + "\n", hold0, t_end
 
 
-def tb_ac(dut: str, dut_ref: str, *, drive: str = "msb",
-          dp: DriverParams | None = None, corner: str = "tt",
-          f_start_hz: float = 1e8, f_stop_hz: float = 1e11,
-          pts_per_dec: int = 20,
-          out_csv: str = "ac.csv") -> str:
-    """.op + .ac S21/S11 sweep testbench (ngspice-45; full sweep in one run).
+# Differential (mixed-mode) S-parameters from ngspice's built-in S-parameter
+# analysis (`sp`, ngspice >= 42): the driven input pair and the output pair are
+# `portnum`/`z0 50` port sources (each = source + series 50 ohm, i.e. the VNA
+# reference), and Sdd is formed from the single-ended matrix over a p/n pair:
+#   Sdd_ij = 0.5*(S_pi,pj - S_pi,nj - S_ni,pj + S_ni,nj)
+# The legacy `method="algebra"` keeps the original in-deck power-wave math
+# (unit differential AC EMF through 2x50 ohm, zin = vdiff*100/(1-vdiff),
+# S = (z-100)/(z+100), S21 = 2*Vout/Vsrc); both agree to all printed digits
+# (verification/README.md, "Independent method").
+S_METHOD = "sp"
 
-    In-deck power-wave math: S21 = 2*Vout/Vsrc with Vsrc = 1 V differential
-    AC EMF; S11 from Zin = Vin/Iin, Iin = (Vsrc-Vin)/(2*Z0). Both written to
-    out_csv as dB vs frequency.
-    """
-    dp = dp or DriverParams()
-    if dut != "pam4":
-        drive = "in"
-    lines = [f"* TB[{dut}] .op/.ac S21+S11 sweep drive={drive} (ngspice-45)"]
-    lines += _bias_sources_dc(dut, dp)
-    lines.append(_tb_dut_instance(dut, dp))
-    lines += _tb_output_load(dp)
+
+def _sdd(i: str, j: str) -> str:
+    """ngspice expression for the mixed-mode Sdd between port pairs i=(p,n) and j=(p,n)
+    given as 'ab' strings of port numbers, e.g. _sdd('34', '12') = Sdd21 (out <- in)."""
+    ip, i_n = i
+    jp, jn = j
+    return f"0.5*(S_{ip}_{jp} - S_{ip}_{jn} - S_{i_n}_{jp} + S_{i_n}_{jn})"
+
+
+def _ac_common(dut: str, dp: DriverParams, drive: str, method: str) -> tuple[list[str], str, str]:
+    """Bias sources, DUT, output reference, input sources for the AC benches.
+    Returns (lines, driven-p node, driven-n node)."""
     p = dp.cell
+    lines = list(_bias_sources_dc(dut, dp))
+    lines.append(_tb_dut_instance(dut, dp))
+    if method == "sp":
+        lines += [f"Vlp outp vcc DC 0 AC 0 portnum 3 z0 {Z0:g}",       # output pair = ports 3/4
+                  f"Vln outn vcc DC 0 AC 0 portnum 4 z0 {Z0:g}"]
+    else:
+        lines += _tb_output_load(dp)
     for port in _input_ports(dut):
+        tp, tn = _dut_input_ports(dut, port) if dut == "pam4" else ("inp", "inn")
+        if method == "sp" and port == drive:                            # driven pair = ports 1/2
+            lines.append(f"Vs{port}p {tp} 0 DC {p.vcm_in:g} AC 1 portnum 1 z0 {Z0:g}")
+            lines.append(f"Vs{port}n {tn} 0 DC {p.vcm_in:g} AC 1 portnum 2 z0 {Z0:g}")
+            continue
         acp = " AC 0.5" if (port == drive) else ""
         acn = " AC -0.5" if (port == drive) else ""
         lines.append(f"Vs{port}p s{port}p 0 DC {p.vcm_in:g}{acp}")
         lines.append(f"Vs{port}n s{port}n 0 DC {p.vcm_in:g}{acn}")
-        tp, tn = _dut_input_ports(dut, port) if dut == "pam4" else ("inp", "inn")
         lines.append(f"Rs{port}p s{port}p {tp} {Z0:g}")
         lines.append(f"Rs{port}n s{port}n {tn} {Z0:g}")
     rp, rn = _dut_input_ports(dut, drive) if dut == "pam4" else ("inp", "inn")
+    return lines, rp, rn
+
+
+def tb_ac(dut: str, dut_ref: str, *, drive: str = "msb",
+          dp: DriverParams | None = None, corner: str = "tt",
+          f_start_hz: float = 1e8, f_stop_hz: float = 1e11,
+          pts_per_dec: int = 20, method: str = S_METHOD,
+          out_csv: str = "ac.csv") -> str:
+    """.op + S-parameter sweep testbench (ngspice-45): differential S21 (out <- driven
+    input pair) and S11 (driven input pair), 50 ohm/side references, written to
+    out_csv as dB vs frequency.
+
+    method="sp" (default): ngspice's built-in `sp` analysis on 4 port sources
+    (1/2 = driven input pair, 3/4 = output pair), Sdd21 / Sdd11 mixed-mode.
+    method="algebra": legacy .ac + in-deck power-wave math (identical numbers)."""
+    dp = dp or DriverParams()
+    if dut != "pam4":
+        drive = "in"
+    lines = [f"* TB[{dut}] .op/{'sp' if method == 'sp' else 'ac'} S21+S11 sweep drive={drive} (ngspice-45)"]
+    body, rp, rn = _ac_common(dut, dp, drive, method)
+    lines += body
     lines.append(dut_ref)
     lines.append(hbt_lib_line(corner))
     lines.append(".options gmin=1e-12 reltol=1e-3")
     lines.append(".control")
     lines.append("op")
     lines.append("print v(outp) v(outn) i(Vcc)")
-    lines.append(f"ac dec {pts_per_dec} {f_start_hz:g} {f_stop_hz:g}")
-    lines.append("let vodiff = v(outp)-v(outn)")
-    lines.append(f"let vidiff = v({rp})-v({rn})")
-    lines.append("let s21db = db(2*vodiff)")
-    lines.append(f"let zin = vidiff*{2*Z0:g}/(1-vidiff)")
-    lines.append(f"let s11db = db((zin-{2*Z0:g})/(zin+{2*Z0:g}))")
+    if method == "sp":
+        lines.append(f"sp dec {pts_per_dec} {f_start_hz:g} {f_stop_hz:g}")
+        lines.append(f"let s21db = db({_sdd('34', '12')})")
+        lines.append(f"let s11db = db({_sdd('12', '12')})")
+    else:
+        lines.append(f"ac dec {pts_per_dec} {f_start_hz:g} {f_stop_hz:g}")
+        lines.append("let vodiff = v(outp)-v(outn)")
+        lines.append(f"let vidiff = v({rp})-v({rn})")
+        lines.append("let s21db = db(2*vodiff)")
+        lines.append(f"let zin = vidiff*{2*Z0:g}/(1-vidiff)")
+        lines.append(f"let s11db = db((zin-{2*Z0:g})/(zin+{2*Z0:g}))")
     lines.append(f"wrdata {out_csv} s21db s11db")
     lines.append(".endc")
     lines.append(".GLOBAL GND")
@@ -445,12 +490,16 @@ def tb_ac(dut: str, dut_ref: str, *, drive: str = "msb",
 def tb_ac_s22(dut: str, dut_ref: str, *, dp: DriverParams | None = None,
               corner: str = "tt", f_start_hz: float = 1e8,
               f_stop_hz: float = 1e11, pts_per_dec: int = 20,
+              method: str = S_METHOD,
               out_csv: str = "acs22.csv") -> str:
-    """.op + .ac S22 sweep: inputs at CM, unit differential AC EMF into the
-    output through 50 ohm/side referenced to VCC."""
+    """.op + S22 sweep: inputs at CM through 50 ohm/side, the output pair as the
+    excited port pair (50 ohm/side referenced to VCC).
+
+    method="sp" (default): port sources 1/2 on outp/outn, Sdd22 from ngspice's
+    `sp` analysis. method="algebra": legacy .ac + zout = vdiff*100/(1-vdiff)."""
     dp = dp or DriverParams()
     p = dp.cell
-    lines = [f"* TB[{dut}] .op/.ac S22 sweep (ngspice-45)"]
+    lines = [f"* TB[{dut}] .op/{'sp' if method == 'sp' else 'ac'} S22 sweep (ngspice-45)"]
     lines += _bias_sources_dc(dut, dp)
     lines.append(_tb_dut_instance(dut, dp))
     for port in _input_ports(dut):
@@ -459,19 +508,27 @@ def tb_ac_s22(dut: str, dut_ref: str, *, dp: DriverParams | None = None,
         tp, tn = _dut_input_ports(dut, port) if dut == "pam4" else ("inp", "inn")
         lines.append(f"Rs{port}p s{port}p {tp} {Z0:g}")
         lines.append(f"Rs{port}n s{port}n {tn} {Z0:g}")
-    lines.append(f"Vsop sop 0 DC {dp.vcc:g} AC 0.5")
-    lines.append(f"Vson son 0 DC {dp.vcc:g} AC -0.5")
-    lines.append(f"Rsop sop outp {Z0:g}")
-    lines.append(f"Rson son outn {Z0:g}")
+    if method == "sp":
+        lines.append(f"Vsop outp vcc DC 0 AC 1 portnum 1 z0 {Z0:g}")
+        lines.append(f"Vson outn vcc DC 0 AC 1 portnum 2 z0 {Z0:g}")
+    else:
+        lines.append(f"Vsop sop 0 DC {dp.vcc:g} AC 0.5")
+        lines.append(f"Vson son 0 DC {dp.vcc:g} AC -0.5")
+        lines.append(f"Rsop sop outp {Z0:g}")
+        lines.append(f"Rson son outn {Z0:g}")
     lines.append(dut_ref)
     lines.append(hbt_lib_line(corner))
     lines.append(".options gmin=1e-12 reltol=1e-3")
     lines.append(".control")
     lines.append("op")
-    lines.append(f"ac dec {pts_per_dec} {f_start_hz:g} {f_stop_hz:g}")
-    lines.append("let vodiff = v(outp)-v(outn)")
-    lines.append(f"let zout = vodiff*{2*Z0:g}/(1-vodiff)")
-    lines.append(f"let s22db = db((zout-{2*Z0:g})/(zout+{2*Z0:g}))")
+    if method == "sp":
+        lines.append(f"sp dec {pts_per_dec} {f_start_hz:g} {f_stop_hz:g}")
+        lines.append(f"let s22db = db({_sdd('12', '12')})")
+    else:
+        lines.append(f"ac dec {pts_per_dec} {f_start_hz:g} {f_stop_hz:g}")
+        lines.append("let vodiff = v(outp)-v(outn)")
+        lines.append(f"let zout = vodiff*{2*Z0:g}/(1-vodiff)")
+        lines.append(f"let s22db = db((zout-{2*Z0:g})/(zout+{2*Z0:g}))")
     lines.append(f"wrdata {out_csv} s22db")
     lines.append(".endc")
     lines.append(".GLOBAL GND")
@@ -752,23 +809,34 @@ def run_ac_s22(dut: str, *, dp: DriverParams | None = None,
 def tb_ac_balance(dut: str, dut_ref: str, *, drive: str = "msb",
                   dp: DriverParams | None = None, corner: str = "tt",
                   f_start_hz: float = 1e8, f_stop_hz: float = 1e11,
-                  pts_per_dec: int = 20,
+                  pts_per_dec: int = 20, method: str = S_METHOD,
                   out_csv: str = "acbal.csv") -> str:
-    """.op/.ac p/n BALANCE sweep (added 2026-08-18 for the co-design matching
-    audit): the tb_ac stimulus, but the two output half-swings are written
-    separately — |Vp|, |Vn| (dB), their phases (deg) and the common-mode
-    residual Vp+Vn (dB) vs the differential Vp-Vn — so a layout asymmetry
-    (per-net bus extents, one output on a different metal, ...) shows up as a
-    gain / phase imbalance and a differential-to-common-mode conversion."""
+    """p/n BALANCE sweep (added 2026-08-18 for the co-design matching audit):
+    the tb_ac stimulus, but the two output half-swings are written separately
+    — |Vp|, |Vn| (dB), their phases (deg) and the common-mode residual Vp+Vn
+    (dB) vs the differential Vp-Vn — so a layout asymmetry (per-net bus
+    extents, one output on a different metal, ...) shows up as a gain / phase
+    imbalance and a differential-to-common-mode conversion.
+
+    method="sp" (default): from the same 4-port S-matrix as tb_ac — under a
+    differential drive (a1 = -a2) the two output waves are
+    2*Vp = 0.5*(S31 - S32) and 2*Vn = 0.5*(S41 - S42) — the same columns as the
+    legacy .ac node-voltage version (method="algebra"), so the imbalance and
+    diff->CM numbers are identical by construction."""
     deck = tb_ac(dut, dut_ref, drive=drive, dp=dp, corner=corner,
                  f_start_hz=f_start_hz, f_stop_hz=f_stop_hz,
-                 pts_per_dec=pts_per_dec, out_csv="ac.csv")
-    return deck.replace(
-        "wrdata ac.csv s21db s11db",
-        "let gpdb = db(2*v(outp))\nlet gndb = db(2*v(outn))\n"
-        "let php = ph(v(outp))*180/pi\nlet phn = ph(v(outn))*180/pi\n"
-        "let cmdb = db(mag(v(outp)+v(outn))+1e-15)\nlet ddb = db(v(outp)-v(outn))\n"
-        f"wrdata {out_csv} gpdb gndb php phn cmdb ddb")
+                 pts_per_dec=pts_per_dec, method=method, out_csv="ac.csv")
+    if method == "sp":
+        post = ("let vp = 0.5*(S_3_1 - S_3_2)\nlet vn = 0.5*(S_4_1 - S_4_2)\n"
+                "let gpdb = db(vp)\nlet gndb = db(vn)\n"
+                "let php = ph(vp)*180/pi\nlet phn = ph(vn)*180/pi\n"
+                "let cmdb = db(mag(vp+vn)+1e-15)\nlet ddb = db(vp-vn)\n")
+    else:
+        post = ("let gpdb = db(2*v(outp))\nlet gndb = db(2*v(outn))\n"
+                "let php = ph(v(outp))*180/pi\nlet phn = ph(v(outn))*180/pi\n"
+                "let cmdb = db(mag(v(outp)+v(outn))+1e-15)\nlet ddb = db(v(outp)-v(outn))\n")
+    return deck.replace("wrdata ac.csv s21db s11db",
+                        post + f"wrdata {out_csv} gpdb gndb php phn cmdb ddb")
 
 
 def run_ac_balance(dut: str, *, drive: str = "msb",

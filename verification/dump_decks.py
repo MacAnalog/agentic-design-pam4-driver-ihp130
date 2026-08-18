@@ -66,39 +66,24 @@ def dut_ref_for(tier: str, deck_dir: str) -> str:
     return ref.replace(f'.include "{os.path.abspath(post)}"', f'.include "{rel}"')
 
 
-def write_sp_twins(d: str, meta: dict) -> None:
-    """ac_msb_sp.spice / s22_sp.spice: same bias, same DUT, but the source and
-    load resistors are replaced by ngspice `portnum`/`z0` port sources and the
-    S-matrix comes from `sp dec 100 ...` (ngspice >= 42). Cross-checks S21, S11,
-    S22 (and BW / band-edge reads) against the wrdata decks."""
-    vcm = meta["cell"]["vcm_in"]; vcc = meta["vcc"]
-    s = open(os.path.join(d, "ac_msb.spice")).read()
-    old = (f"Vsmsbp smsbp 0 DC {vcm:g} AC 0.5\nVsmsbn smsbn 0 DC {vcm:g} AC -0.5\n"
-           f"Rsmsbp smsbp msbp 50\nRsmsbn smsbn msbn 50\n")
-    assert old in s, "ac_msb.spice source block changed — update write_sp_twins"
-    s = s.replace(old, f"Vsmsbp msbp 0 DC {vcm:g} AC 1 portnum 1 z0 50\nVsmsbn msbn 0 DC {vcm:g} AC 1 portnum 2 z0 50\n")
-    old2 = "Rlp outp vcc 50\nRln outn vcc 50\n"
-    assert old2 in s
-    s = s.replace(old2, "Vlp outp vcc DC 0 AC 0 portnum 3 z0 50\nVln outn vcc DC 0 AC 0 portnum 4 z0 50\n")
-    s = s[:s.index(".control")] + (
-        "* independent method: ngspice built-in S-parameter analysis, 4 ports (msbp, msbn, outp, outn), z0 = 50\n"
-        ".control\nop\nsp dec 100 1e8 1e11\n"
-        "let sdd11 = 0.5*(S_1_1 - S_1_2 - S_2_1 + S_2_2)\nlet sdd21 = 0.5*(S_3_1 - S_3_2 - S_4_1 + S_4_2)\n"
-        "let sdd11db = db(sdd11)\nlet sdd21db = db(sdd21)\nwrdata ac_msb_sp.csv sdd21db sdd11db\n.endc\n.GLOBAL GND\n.end\n")
-    open(os.path.join(d, "ac_msb_sp.spice"), "w").write(s)
-    s = open(os.path.join(d, "s22.spice")).read()
-    old = f"Vsop sop 0 DC {vcc:g} AC 0.5\nVson son 0 DC {vcc:g} AC -0.5\nRsop sop outp 50\nRson son outn 50\n"
-    assert old in s, "s22.spice source block changed — update write_sp_twins"
-    s = s.replace(old, f"Vsop outp vcc DC 0 AC 1 portnum 1 z0 50\nVson outn vcc DC 0 AC 1 portnum 2 z0 50\n")
-    s = s[:s.index(".control")] + (
-        "* independent method: ngspice built-in S-parameter analysis, 2 ports (outp, outn), z0 = 50\n"
-        ".control\nop\nsp dec 100 1e8 1e11\n"
-        "let sdd22 = 0.5*(S_1_1 - S_1_2 - S_2_1 + S_2_2)\nlet sdd22db = db(sdd22)\n"
-        "wrdata s22_sp.csv sdd22db\n.endc\n.GLOBAL GND\n.end\n")
-    open(os.path.join(d, "s22_sp.spice"), "w").write(s)
-    meta["decks"]["ac_msb_sp"] = dict(out="ac_msb_sp.csv", cols="f, sdd21_db, f, sdd11_db",
-                                      gives=["cross-check: msb_gain, bw_msb, s11_msb, s11_edge (ngspice sp)"])
-    meta["decks"]["s22_sp"] = dict(out="s22_sp.csv", cols="f, sdd22_db", gives=["cross-check: s22, s22_edge_ghz (ngspice sp)"])
+def write_alg_twins(d: str, ref: str, dp, meta: dict) -> None:
+    """ac_msb_alg.spice / s22_alg.spice / balance_alg.spice: the same benches with
+    method="algebra" — the legacy in-deck power-wave math (.ac + unit differential
+    EMF through 2x50 ohm, zin = vdiff*100/(1-vdiff), S = (z-100)/(z+100),
+    S21 = 2*Vout/Vsrc; balance from node voltages) instead of ngspice's `sp`
+    S-parameter analysis. Independent-method cross-check of S21, S11, S22, BW,
+    the band-edge reads and the balance scalars."""
+    open(os.path.join(d, "ac_msb_alg.spice"), "w").write(
+        dl.tb_ac("pam4", ref, drive="msb", dp=dp, pts_per_dec=100, method="algebra", out_csv="ac_msb_alg.csv"))
+    open(os.path.join(d, "s22_alg.spice"), "w").write(
+        dl.tb_ac_s22("pam4", ref, dp=dp, pts_per_dec=100, method="algebra", out_csv="s22_alg.csv"))
+    open(os.path.join(d, "balance_alg.spice"), "w").write(
+        dl.tb_ac_balance("pam4", ref, drive="msb", dp=dp, pts_per_dec=100, method="algebra", out_csv="balance_alg.csv"))
+    meta["decks"]["ac_msb_alg"] = dict(out="ac_msb_alg.csv", cols="f, s21_db, f, s11_db",
+                                       gives=["cross-check (legacy .ac algebra): msb_gain, bw_msb, s11_msb, s11_edge"])
+    meta["decks"]["s22_alg"] = dict(out="s22_alg.csv", cols="f, s22_db", gives=["cross-check (legacy .ac algebra): s22, s22_edge_ghz"])
+    meta["decks"]["balance_alg"] = dict(out="balance_alg.csv", cols="as balance.csv",
+                                        gives=["cross-check (legacy .ac node voltages): pn_gain_imb_db, pn_phase_imb_deg, cm_leak_dbc"])
 
 
 def main() -> None:
@@ -115,16 +100,16 @@ def main() -> None:
         open(os.path.join(d, "spiceinit.txt"), "w").write("# copy of .spiceinit (ngspice reads the dotfile)\n" + SPICEINIT)
         meta = dict(tier=tier, label=t["label"], vcc=dp.vcc, cell=dp.cell.__dict__, baud_hz=BAUD, nsym=NSYM,
                     decks={})
-        # S21/S11, both drive paths  (gain, weight, BW, S11, S11 edge)
+        # S21/S11, both drive paths  (gain, weight, BW, S11, S11 edge) — ngspice `sp` analysis, 4 ports
         for drv in ("lsb", "msb"):
             deck = dl.tb_ac("pam4", ref, drive=drv, dp=dp, pts_per_dec=100, out_csv=f"ac_{drv}.csv")
             open(os.path.join(d, f"ac_{drv}.spice"), "w").write(deck)
-            meta["decks"][f"ac_{drv}"] = dict(out=f"ac_{drv}.csv", cols="f, s21_db, f, s11_db",
+            meta["decks"][f"ac_{drv}"] = dict(out=f"ac_{drv}.csv", cols="f, sdd21_db, f, sdd11_db",
                                              gives=[f"{drv}_gain", f"bw_{drv}", f"s11_{drv}", "s11", "s11_edge_ghz", "weight", "bw"])
         # S22
         deck = dl.tb_ac_s22("pam4", ref, dp=dp, pts_per_dec=100, out_csv="s22.csv")
         open(os.path.join(d, "s22.spice"), "w").write(deck)
-        meta["decks"]["s22"] = dict(out="s22.csv", cols="f, s22_db", gives=["s22", "s22_edge_ghz"])
+        meta["decks"]["s22"] = dict(out="s22.csv", cols="f, sdd22_db", gives=["s22", "s22_edge_ghz"])
         # p/n balance (MSB drive)
         deck = dl.tb_ac_balance("pam4", ref, drive="msb", dp=dp, pts_per_dec=100, out_csv="balance.csv")
         open(os.path.join(d, "balance.spice"), "w").write(deck)
@@ -144,10 +129,9 @@ def main() -> None:
         open(os.path.join(d, "eye.spice"), "w").write(deck)
         meta["decks"]["eye"] = dict(out="eye.csv", cols="t, vout_diff", data_start_ns=t0, t_end_ns=t_end,
                                     gives=["eye_rlm", "eye_min_v", "eye_vpp", "eye_levels_v", "eye_openings_v"])
-        # independent-method twins: ngspice's built-in S-parameter analysis (`sp`,
-        # port sources with z0=50) instead of the in-deck power-wave algebra;
-        # mixed-mode Sdd = 0.5*(S11 - S12 - S21 + S22) over the p/n port pair
-        write_sp_twins(d, meta)
+        # independent-method twins: the legacy in-deck .ac power-wave algebra
+        # (the primary decks use ngspice's built-in `sp` S-parameter analysis)
+        write_alg_twins(d, ref, dp, meta)
         json.dump(meta, open(os.path.join(d, "meta.json"), "w"), indent=1)
         print(f"{tier}: {len(meta['decks'])} decks -> {os.path.relpath(d, ROOT)}")
 

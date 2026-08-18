@@ -10,8 +10,8 @@ the shipped GDS. Two ways to do it:
   `--no-eye`): runs every deck, extracts every number, prints PASS/FAIL against
   `expected.json` (the values on record, frozen from `report/data/metrics.json`),
   and exits non-zero on any miss. Last run on the research server:
-  **139/139 checks pass** — 115 numbers of the record for all four tiers, plus 24 independent-method
-  S-parameter cross-checks (ngspice `sp` analysis, see below and `last_run.json`).
+  **151/151 checks pass** — 115 numbers of the record for all four tiers, plus 36 independent-method
+  cross-checks (legacy `.ac` algebra vs the `sp` decks, see below and `last_run.json`).
 * **manual** — the recipe below, one deck at a time, then `extract.py` prints
   each number next to its definition. Only numpy is needed for the extraction.
 
@@ -38,10 +38,10 @@ tier's sizing (`decks/<tier>/meta.json` lists it) — regenerate with
 ```sh
 export PDK_ROOT=<dir containing ihp-sg13g2> PDK=ihp-sg13g2     # IHP-Open-PDK; ngspice-45 on PATH
 cd verification/decks/d                                        # tier: a | b | c | d
-ngspice -b ac_msb.spice      # -> ac_msb.csv   (S21/S11 vs f, MSB drive, .op + .ac dec 100 0.1..100 GHz)
+ngspice -b ac_msb.spice      # -> ac_msb.csv   (Sdd21/Sdd11 vs f, MSB drive; .op + sp dec 100 0.1..100 GHz, 4 ports)
 ngspice -b ac_lsb.spice      # -> ac_lsb.csv   (idem, LSB drive)
-ngspice -b s22.spice         # -> s22.csv      (S22 differential vs f)
-ngspice -b balance.spice     # -> balance.csv  (|Vp|,|Vn| dB, phases, |Vp+Vn|, |Vp−Vn| dB vs f; MSB drive)
+ngspice -b s22.spice         # -> s22.csv      (Sdd22 vs f; 2 output ports)
+ngspice -b balance.spice     # -> balance.csv  (|Vp|,|Vn| dB, phases, |Vp+Vn|, |Vp−Vn| dB vs f from the 4-port S-matrix; MSB drive)
 ngspice -b dc.spice          # -> dc.csv       (Vout,diff vs source EMF, both ports, ±0.9 V)
 ngspice -b bias.spice        # -> bias.csv     (ramp-and-hold transient: v(outp), i(Vcc))
 ngspice -b eye.spice         # -> eye.csv      (48 GBd PAM-4, 200 symbols, ~25 s post-layout)
@@ -53,26 +53,33 @@ it the HBT conducts 0 A silently; it also loads the OSDI resistor model the
 layout netlists need). ngspice reads it from the run directory, so run the
 decks from inside `decks/<tier>/`.
 
-### Independent method: ngspice's built-in S-parameter analysis
+### S-parameter method, and the independent cross-check
 
-The S21 / S11 / S22 decks compute the S-parameters with in-deck power-wave
-algebra (unit differential EMF through 2×50 Ω; `zin = vdiff·100/(1−vdiff)`,
-`S = (z−100)/(z+100)`, `S21 = 2·Vout/Vsrc`). Each tier also carries a twin deck
-that replaces the source/load resistors by ngspice **port sources**
-(`portnum n z0 50`) and lets ngspice's `sp` analysis (ngspice ≥ 42) produce the
-S-matrix; the mixed-mode quantity is formed from the p/n port pair,
-`Sdd = ½(S11 − S12 − S21 + S22)`:
+All S-parameter numbers come from **ngspice's built-in S-parameter analysis**
+(`sp dec 100 1e8 1e11`, ngspice ≥ 42): the driven input pair and the output pair
+are port sources (`portnum n z0 50`, i.e. source + series 50 Ω = the VNA
+reference) and the differential quantities are the mixed-mode combinations of
+the single-ended matrix over each p/n pair, `Sdd = ½(S11 − S12 − S21 + S22)`
+(`ac_msb.spice`: 4 ports msbp/msbn/outp/outn → Sdd21, Sdd11; `s22.spice`: 2 ports
+outp/outn → Sdd22; `balance.spice`: the two output waves under differential
+drive, `2·Vp = ½(S31 − S32)`, `2·Vn = ½(S41 − S42)`, → gain/phase imbalance and
+diff→CM conversion).
+
+Each tier also carries `*_alg.spice` twins that compute the same quantities
+with the legacy in-deck power-wave algebra (`.ac`, unit differential EMF
+through 2×50 Ω, `zin = vdiff·100/(1−vdiff)`, `S = (z−100)/(z+100)`,
+`S21 = 2·Vout/Vsrc`; balance from the node voltages `v(outp)`, `v(outn)`):
 
 ```sh
-ngspice -b ac_msb_sp.spice   # 4 ports (msbp, msbn, outp, outn) -> ac_msb_sp.csv: Sdd21, Sdd11 vs f
-ngspice -b s22_sp.spice      # 2 ports (outp, outn)             -> s22_sp.csv:    Sdd22 vs f
-python ../../extract.py d    # prints the [sp] lines next to the deck-algebra numbers
+ngspice -b ac_msb_alg.spice   ; ngspice -b s22_alg.spice   ; ngspice -b balance_alg.spice
+python ../../extract.py d     # prints the [alg] lines next to the sp numbers
 ```
 
 `verify.py` requires the two methods to agree to 0.01 dB / 0.05 GHz on gain,
-BW, S11, S22 and both −10 dB edges; on record they agree to all printed digits
-for every tier (e.g. v3: S11 −10.046 / S22 −10.720 dB, edges 32.20 / 54.73 GHz
-by both methods; schematic S22 −14.752 by both).
+BW, S11, S22 and both −10 dB edges and to 0.002 dB / 0.02° / 0.5 dBc on the
+balance scalars; on record they agree to all printed digits for every tier
+(e.g. v3: S11 −10.046 / S22 −10.720 dB, edges 32.20 / 54.73 GHz, balance
+0.053 dB / 1.166° / −39.45 dBc by both methods).
 
 Layout-side numbers (no ngspice):
 
@@ -107,7 +114,7 @@ uv run python verification/verify.py --tier d --step regen    # rebuild the GDS 
 | LVS | `GDS` | KLayout LVS vs dut_pam4_lvs.spice (`--step layout`) | — | PASS | PASS | PASS | exact |
 
 Instrument facts that matter when comparing to older numbers in the repo: the
-S-parameter decks sweep `ac dec 100` and the band-edge values are read
+S-parameter decks sweep `sp dec 100` and the band-edge values are read
 **including the interpolated 32 / 50 GHz point** (an `ac dec 20` grid never
 samples them — its last in-band points are 31.62 / 44.67 GHz, which is where the
 repo's older "−10.03 / −10.14" for v2 came from); post-layout tiers are kpex 2.5D
@@ -127,7 +134,7 @@ verification/
   verify.py        automatic: ngspice on every deck + extract + compare with expected.json; DRC/LVS/area; regen XOR
   expected.json    the values on record (frozen report/data/metrics.json) + tolerances + units
   last_run.json    result of the last verify.py run
-  decks/<tier>/    ac_lsb, ac_msb, s22, balance, dc, bias, eye .spice + ac_msb_sp, s22_sp (ngspice `sp` twins);
+  decks/<tier>/    ac_lsb, ac_msb, s22, balance, dc, bias, eye .spice (+ ac_msb_alg, s22_alg, balance_alg legacy-algebra twins);
                    .spiceinit; meta.json  (CSV/log outputs git-ignored)
   work/            DRC/LVS/regen scratch (git-ignored)
 ```

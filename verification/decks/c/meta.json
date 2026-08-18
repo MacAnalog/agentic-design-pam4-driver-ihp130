@@ -17,7 +17,7 @@
  "decks": {
   "ac_lsb": {
    "out": "ac_lsb.csv",
-   "cols": "f, s21_db, f, s11_db",
+   "cols": "f, sdd21_db, f, sdd11_db",
    "gives": [
     "lsb_gain",
     "bw_lsb",
@@ -30,7 +30,7 @@
   },
   "ac_msb": {
    "out": "ac_msb.csv",
-   "cols": "f, s21_db, f, s11_db",
+   "cols": "f, sdd21_db, f, sdd11_db",
    "gives": [
     "msb_gain",
     "bw_msb",
@@ -43,7 +43,7 @@
   },
   "s22": {
    "out": "s22.csv",
-   "cols": "f, s22_db",
+   "cols": "f, sdd22_db",
    "gives": [
     "s22",
     "s22_edge_ghz"
@@ -88,18 +88,25 @@
     "eye_openings_v"
    ]
   },
-  "ac_msb_sp": {
-   "out": "ac_msb_sp.csv",
-   "cols": "f, sdd21_db, f, sdd11_db",
+  "ac_msb_alg": {
+   "out": "ac_msb_alg.csv",
+   "cols": "f, s21_db, f, s11_db",
    "gives": [
-    "cross-check: msb_gain, bw_msb, s11_msb, s11_edge (ngspice sp)"
+    "cross-check (legacy .ac algebra): msb_gain, bw_msb, s11_msb, s11_edge"
    ]
   },
-  "s22_sp": {
-   "out": "s22_sp.csv",
-   "cols": "f, sdd22_db",
+  "s22_alg": {
+   "out": "s22_alg.csv",
+   "cols": "f, s22_db",
    "gives": [
-    "cross-check: s22, s22_edge_ghz (ngspice sp)"
+    "cross-check (legacy .ac algebra): s22, s22_edge_ghz"
+   ]
+  },
+  "balance_alg": {
+   "out": "balance_alg.csv",
+   "cols": "as balance.csv",
+   "gives": [
+    "cross-check (legacy .ac node voltages): pn_gain_imb_db, pn_phase_imb_deg, cm_leak_dbc"
    ]
   }
  }

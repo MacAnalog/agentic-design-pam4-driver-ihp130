@@ -1,18 +1,22 @@
-* TB[pam4] .op/.ac S21+S11 sweep drive=msb (ngspice-45)
+* TB[pam4] .op/ac S22 sweep (ngspice-45)
 Vcc vcc 0 DC 4
 Vcasc vcasc 0 DC 3.25
 Vcmb vcmb 0 DC 1.9
 Vblsb blsb 0 DC 16
 Vbmsb bmsb 0 DC 16
 XDUT lsbp lsbn msbp msbn outp outn vcc vcasc vcmb blsb bmsb pam4drv_pam4
-Vlp outp vcc DC 0 AC 0 portnum 3 z0 50
-Vln outn vcc DC 0 AC 0 portnum 4 z0 50
 Vslsbp slsbp 0 DC 1.9
 Vslsbn slsbn 0 DC 1.9
 Rslsbp slsbp lsbp 50
 Rslsbn slsbn lsbn 50
-Vsmsbp msbp 0 DC 1.9 AC 1 portnum 1 z0 50
-Vsmsbn msbn 0 DC 1.9 AC 1 portnum 2 z0 50
+Vsmsbp smsbp 0 DC 1.9
+Vsmsbn smsbn 0 DC 1.9
+Rsmsbp smsbp msbp 50
+Rsmsbn smsbn msbn 50
+Vsop sop 0 DC 4 AC 0.5
+Vson son 0 DC 4 AC -0.5
+Rsop sop outp 50
+Rson son outn 50
 * DUT: pam4drv_pam4 — 1 LSB cell(s) + 2 MSB cell(s), npn13G2 Nx=3
 .subckt pam4drv_pam4 lsbp lsbn msbp msbn outp outn vcc vcasc vcmb blsb bmsb
 * --- cell L0 ---
@@ -55,15 +59,13 @@ Rbmsbn msbn vcmb 50
 
 .lib "cornerHBT.lib" hbt_typ
 .options gmin=1e-12 reltol=1e-3
-* independent method: ngspice built-in S-parameter analysis, 4 ports (msbp, msbn, outp, outn), z0 = 50
 .control
 op
-sp dec 100 1e8 1e11
-let sdd11 = 0.5*(S_1_1 - S_1_2 - S_2_1 + S_2_2)
-let sdd21 = 0.5*(S_3_1 - S_3_2 - S_4_1 + S_4_2)
-let sdd11db = db(sdd11)
-let sdd21db = db(sdd21)
-wrdata ac_msb_sp.csv sdd21db sdd11db
+ac dec 100 1e+08 1e+11
+let vodiff = v(outp)-v(outn)
+let zout = vodiff*100/(1-vodiff)
+let s22db = db((zout-100)/(zout+100))
+wrdata s22_alg.csv s22db
 .endc
 .GLOBAL GND
 .end

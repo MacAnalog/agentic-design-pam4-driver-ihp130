@@ -105,9 +105,9 @@ def extract(tier: str, deck_dir: str | None = None, verbose: bool = True) -> dic
         lf = float(s21[np.argmin(np.abs(f - 1.0))])
         ac[drv] = dict(gain=lf, bw=f3db(f, s21, lf), s11=band_max(f, s11, S11_BAND_GHZ), s11_edge=edge(f, s11))
         out[f"{drv}_gain"] = lf; out[f"bw_{drv}"] = ac[drv]["bw"]; out[f"s11_{drv}"] = ac[drv]["s11"]
-        say(f"   {drv}_gain = S21({drv} drive) at 1 GHz              = {lf:8.3f} dB")
+        say(f"   {drv}_gain = Sdd21({drv} drive) at 1 GHz            = {lf:8.3f} dB")
         say(f"   bw_{drv}   = f where S21 = gain-3 dB (interp.)      = {ac[drv]['bw']:8.2f} GHz")
-        say(f"   s11_{drv}  = max S11 over f<=32 GHz incl. edge      = {ac[drv]['s11']:8.3f} dB   (edge {ac[drv]['s11_edge']:.2f} GHz)")
+        say(f"   s11_{drv}  = max Sdd11 over f<=32 GHz incl. edge    = {ac[drv]['s11']:8.3f} dB   (edge {ac[drv]['s11_edge']:.2f} GHz)")
     if len(ac) == 2:
         out["weight"] = ac["msb"]["gain"] - ac["lsb"]["gain"]
         out["bw"] = min(ac["lsb"]["bw"], ac["msb"]["bw"])
@@ -123,7 +123,7 @@ def extract(tier: str, deck_dir: str | None = None, verbose: bool = True) -> dic
     else:
         f, s22 = a[:, 0] / 1e9, a[:, 1]
         out["s22"] = band_max(f, s22, S22_BAND_GHZ); out["s22_edge_ghz"] = edge(f, s22)
-        say(f"   s22       = max S22 over f<=50 GHz incl. edge      = {out['s22']:8.3f} dB")
+        say(f"   s22       = max Sdd22 over f<=50 GHz incl. edge    = {out['s22']:8.3f} dB")
         say(f"   s22_edge  = -10 dB crossing (interp.)              = {out['s22_edge_ghz']:8.2f} GHz")
     a = load(d, "balance.csv")
     if a is None:
@@ -136,7 +136,7 @@ def extract(tier: str, deck_dir: str | None = None, verbose: bool = True) -> dic
         out["pn_gain_imb_db"] = float(np.abs(gimb[inb]).max())
         out["pn_phase_imb_deg"] = float(np.abs(pimb[inb]).max())
         out["cm_leak_dbc"] = band_max(f, cml, BAL_BAND_GHZ)
-        say(f"   pn_gain_imb  = max |dB(Vp)-dB(Vn)|, f<=48 GHz     = {out['pn_gain_imb_db']:8.3f} dB")
+        say(f"   pn_gain_imb  = max |dB(Vp)-dB(Vn)|, f<=48 GHz     = {out['pn_gain_imb_db']:8.3f} dB   (Vp,Vn from S31-S32, S41-S42)")
         say(f"   pn_phase_imb = max |(ph(Vp)-ph(Vn)) mod 360 - 180| = {out['pn_phase_imb_deg']:8.3f} deg")
         say(f"   cm_leak      = max dB|Vp+Vn| - dB|Vp-Vn|, <=48 GHz = {out['cm_leak_dbc']:8.2f} dBc")
     a = load(d, "dc.csv")
@@ -156,20 +156,30 @@ def extract(tier: str, deck_dir: str | None = None, verbose: bool = True) -> dic
         out["ic_ma_per_finger"] = meta["cell"]["tail_ma"] / 2.0 / meta["cell"]["nx"]
         say(f"   power     = mean|I(Vcc)| for t>={hold0:g} ns x {meta['vcc']:g} V  = {out['power']:8.2f} mW")
         say(f"   ic/finger = tail_ma/2/nx = {meta['cell']['tail_ma']:g}/2/{meta['cell']['nx']}      = {out['ic_ma_per_finger']:8.3f} mA")
-    # independent-method cross-checks (ngspice built-in `sp` analysis, mixed-mode Sdd)
-    a = load(d, "ac_msb_sp.csv")
+    # independent-method cross-checks: legacy in-deck .ac algebra (primary decks = ngspice `sp`)
+    a = load(d, "ac_msb_alg.csv")
     if a is not None:
         f, s21, s11 = a[:, 0] / 1e9, a[:, 1], a[:, 3]
         lf = float(s21[np.argmin(np.abs(f - 1.0))])
-        out["sp_msb_gain"] = lf; out["sp_bw_msb"] = f3db(f, s21, lf)
-        out["sp_s11_msb"] = band_max(f, s11, S11_BAND_GHZ); out["sp_s11_edge_msb"] = edge(f, s11)
-        say(f"   [sp] msb_gain / bw_msb / s11_msb / edge (ngspice sp Sdd21, Sdd11) = "
-            f"{lf:.3f} dB / {out['sp_bw_msb']:.2f} GHz / {out['sp_s11_msb']:.3f} dB / {out['sp_s11_edge_msb']:.2f} GHz")
-    a = load(d, "s22_sp.csv")
+        out["alg_msb_gain"] = lf; out["alg_bw_msb"] = f3db(f, s21, lf)
+        out["alg_s11_msb"] = band_max(f, s11, S11_BAND_GHZ); out["alg_s11_edge_msb"] = edge(f, s11)
+        say(f"   [alg] msb_gain / bw_msb / s11_msb / edge (legacy .ac algebra) = "
+            f"{lf:.3f} dB / {out['alg_bw_msb']:.2f} GHz / {out['alg_s11_msb']:.3f} dB / {out['alg_s11_edge_msb']:.2f} GHz")
+    a = load(d, "s22_alg.csv")
     if a is not None:
         f, s22 = a[:, 0] / 1e9, a[:, 1]
-        out["sp_s22"] = band_max(f, s22, S22_BAND_GHZ); out["sp_s22_edge_ghz"] = edge(f, s22)
-        say(f"   [sp] s22 / edge (ngspice sp Sdd22)                = {out['sp_s22']:.3f} dB / {out['sp_s22_edge_ghz']:.2f} GHz")
+        out["alg_s22"] = band_max(f, s22, S22_BAND_GHZ); out["alg_s22_edge_ghz"] = edge(f, s22)
+        say(f"   [alg] s22 / edge (legacy .ac algebra)                = {out['alg_s22']:.3f} dB / {out['alg_s22_edge_ghz']:.2f} GHz")
+    a = load(d, "balance_alg.csv")
+    if a is not None:
+        f = a[:, 0] / 1e9
+        gp, gn, php, phn, cm, dd = a[:, 1], a[:, 3], a[:, 5], a[:, 7], a[:, 9], a[:, 11]
+        inb = f <= BAL_BAND_GHZ
+        out["alg_pn_gain_imb_db"] = float(np.abs((gp - gn)[inb]).max())
+        out["alg_pn_phase_imb_deg"] = float(np.abs(((php - phn) % 360.0 - 180.0)[inb]).max())
+        out["alg_cm_leak_dbc"] = band_max(f, cm - dd, BAL_BAND_GHZ)
+        say(f"   [alg] balance (legacy .ac node voltages)               = {out['alg_pn_gain_imb_db']:.3f} dB / "
+            f"{out['alg_pn_phase_imb_deg']:.3f} deg / {out['alg_cm_leak_dbc']:.2f} dBc")
     a = load(d, "eye.csv")
     if a is None:
         say("   eye.csv: not run")

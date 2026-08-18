@@ -11,7 +11,9 @@ at the time of the report). One PASS/FAIL line per number, per tier.
     uv run python verification/verify.py --no-eye            # skip the (slowest) eye transient
 
 sim   : runs the static decks in verification/decks/<tier>/ with plain `ngspice -b`
-        (exactly what you would type by hand), then verification/extract.py
+        (exactly what you would type by hand), then verification/extract.py; the
+        S-parameter decks use ngspice's built-in `sp` analysis, and the *_alg twins
+        (legacy in-deck .ac algebra) must agree with them
 layout: KLayout DRC (sg13g2_maximal, --no_density) + LVS on report/layout/<tier>/dut_pam4.gds
         against report/layout/<tier>/dut_pam4_lvs.spice; area = top-cell bbox;
         C/R element counts of the post-layout netlist the decks include
@@ -40,7 +42,7 @@ import extract  # noqa: E402
 DECKS = os.path.join(HERE, "decks")
 EXPECTED = json.load(open(os.path.join(HERE, "expected.json")))
 TOL = EXPECTED["tol"]
-ORDER = ["ac_lsb", "ac_msb", "s22", "balance", "dc", "bias", "ac_msb_sp", "s22_sp", "eye"]
+ORDER = ["ac_lsb", "ac_msb", "s22", "balance", "dc", "bias", "ac_msb_alg", "s22_alg", "balance_alg", "eye"]
 
 RESULTS: list[tuple[str, str, str, object, object, bool]] = []   # tier, key, unit, got, exp, ok
 
@@ -93,12 +95,15 @@ def step_sim(tier: str, no_eye: bool) -> None:
                 "ic_ma_per_finger", "eye_rlm", "eye_min_v", "eye_vpp"):
         if key in got and key in exp:
             check(tier, key, got[key], exp[key], TOL.get(key, TOL["default"]), EXPECTED["units"].get(key, ""))
-    # independent method must agree with the wrdata algebra to 0.01 dB / 0.05 GHz
-    for a_, b_, tol_, unit in (("sp_msb_gain", "msb_gain", 0.01, "dB"), ("sp_bw_msb", "bw_msb", 0.05, "GHz"),
-                               ("sp_s11_msb", "s11_msb", 0.01, "dB"), ("sp_s11_edge_msb", "s11_edge_ghz", 0.05, "GHz"),
-                               ("sp_s22", "s22", 0.01, "dB"), ("sp_s22_edge_ghz", "s22_edge_ghz", 0.05, "GHz")):
+    # independent method (legacy .ac algebra) must agree with the primary `sp` decks
+    for a_, b_, tol_, unit in (("alg_msb_gain", "msb_gain", 0.01, "dB"), ("alg_bw_msb", "bw_msb", 0.05, "GHz"),
+                               ("alg_s11_msb", "s11_msb", 0.01, "dB"), ("alg_s11_edge_msb", "s11_edge_ghz", 0.05, "GHz"),
+                               ("alg_s22", "s22", 0.01, "dB"), ("alg_s22_edge_ghz", "s22_edge_ghz", 0.05, "GHz"),
+                               ("alg_pn_gain_imb_db", "pn_gain_imb_db", 0.002, "dB"),
+                               ("alg_pn_phase_imb_deg", "pn_phase_imb_deg", 0.02, "deg"),
+                               ("alg_cm_leak_dbc", "cm_leak_dbc", 0.5, "dBc")):
         if a_ in got and b_ in got and (b_ != "s11_edge_ghz" or got["s11_msb"] >= got.get("s11_lsb", -1e9)):
-            check(tier, f"{a_} == {b_}", got[a_], got[b_], tol_, unit + "  (ngspice sp vs deck algebra)")
+            check(tier, f"{a_} == {b_}", got[a_], got[b_], tol_, unit + "  (legacy .ac algebra vs ngspice sp)")
     if "eye_openings_v" in got and "eye_openings_v" in exp:
         check(tier, "eye_openings_v", got["eye_openings_v"], exp["eye_openings_v"], TOL["eye_min_v"], "V")
 

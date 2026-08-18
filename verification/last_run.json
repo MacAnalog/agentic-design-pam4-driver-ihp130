@@ -100,7 +100,7 @@
  {
   "tier": "a",
   "key": "cm_leak_dbc",
-  "got": -291.44839208999997,
+  "got": -291.62847582,
   "expected": -291.44839208999997,
   "ok": true
  },
@@ -148,44 +148,65 @@
  },
  {
   "tier": "a",
-  "key": "sp_msb_gain == msb_gain",
+  "key": "alg_msb_gain == msb_gain",
   "got": 9.06041338,
   "expected": 9.06041338,
   "ok": true
  },
  {
   "tier": "a",
-  "key": "sp_bw_msb == bw_msb",
+  "key": "alg_bw_msb == bw_msb",
   "got": 66.58935104258315,
   "expected": 66.58935104258315,
   "ok": true
  },
  {
   "tier": "a",
-  "key": "sp_s11_msb == s11_msb",
+  "key": "alg_s11_msb == s11_msb",
   "got": -10.873713058911163,
   "expected": -10.873713058911163,
   "ok": true
  },
  {
   "tier": "a",
-  "key": "sp_s11_edge_msb == s11_edge_ghz",
+  "key": "alg_s11_edge_msb == s11_edge_ghz",
   "got": 36.142831498500996,
   "expected": 36.142831498500996,
   "ok": true
  },
  {
   "tier": "a",
-  "key": "sp_s22 == s22",
+  "key": "alg_s22 == s22",
   "got": -14.751502713692664,
   "expected": -14.751502713692664,
   "ok": true
  },
  {
   "tier": "a",
-  "key": "sp_s22_edge_ghz == s22_edge_ghz",
+  "key": "alg_s22_edge_ghz == s22_edge_ghz",
   "got": 88.72742435470984,
   "expected": 88.72742435470984,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "alg_pn_gain_imb_db == pn_gain_imb_db",
+  "got": 0.0,
+  "expected": 0.0,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "alg_pn_phase_imb_deg == pn_phase_imb_deg",
+  "got": 4.999999987376214e-07,
+  "expected": 4.999999987376214e-07,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "alg_cm_leak_dbc == cm_leak_dbc",
+  "got": -291.44839208999997,
+  "expected": -291.62847582,
   "ok": true
  },
  {
@@ -304,7 +325,7 @@
  {
   "tier": "b",
   "key": "cm_leak_dbc",
-  "got": -52.8093722212906,
+  "got": -52.80937222538864,
   "expected": -52.8093722212906,
   "ok": true
  },
@@ -352,44 +373,65 @@
  },
  {
   "tier": "b",
-  "key": "sp_msb_gain == msb_gain",
+  "key": "alg_msb_gain == msb_gain",
   "got": 8.91855433,
   "expected": 8.91855433,
   "ok": true
  },
  {
   "tier": "b",
-  "key": "sp_bw_msb == bw_msb",
+  "key": "alg_bw_msb == bw_msb",
   "got": 51.57724307153131,
   "expected": 51.57724307153131,
   "ok": true
  },
  {
   "tier": "b",
-  "key": "sp_s11_msb == s11_msb",
+  "key": "alg_s11_msb == s11_msb",
   "got": -8.89712899381931,
   "expected": -8.89712899381931,
   "ok": true
  },
  {
   "tier": "b",
-  "key": "sp_s11_edge_msb == s11_edge_ghz",
+  "key": "alg_s11_edge_msb == s11_edge_ghz",
   "got": 27.424173146617104,
   "expected": 27.424173146617104,
   "ok": true
  },
  {
   "tier": "b",
-  "key": "sp_s22 == s22",
+  "key": "alg_s22 == s22",
   "got": -7.965168663836293,
   "expected": -7.965168663836293,
   "ok": true
  },
  {
   "tier": "b",
-  "key": "sp_s22_edge_ghz == s22_edge_ghz",
+  "key": "alg_s22_edge_ghz == s22_edge_ghz",
   "got": 38.49006574689413,
   "expected": 38.49006574689413,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "alg_pn_gain_imb_db == pn_gain_imb_db",
+  "got": 0.016722285000000003,
+  "expected": 0.016722285000000003,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "alg_pn_phase_imb_deg == pn_phase_imb_deg",
+  "got": 0.23709930000001123,
+  "expected": 0.23709930000001123,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "alg_cm_leak_dbc == cm_leak_dbc",
+  "got": -52.8093722212906,
+  "expected": -52.80937222538864,
   "ok": true
  },
  {
@@ -571,7 +613,7 @@
  {
   "tier": "c",
   "key": "cm_leak_dbc",
-  "got": -46.52480375830394,
+  "got": -46.52480377252983,
   "expected": -46.52480375830394,
   "ok": true
  },
@@ -619,44 +661,65 @@
  },
  {
   "tier": "c",
-  "key": "sp_msb_gain == msb_gain",
+  "key": "alg_msb_gain == msb_gain",
   "got": 8.24896605,
   "expected": 8.24896605,
   "ok": true
  },
  {
   "tier": "c",
-  "key": "sp_bw_msb == bw_msb",
+  "key": "alg_bw_msb == bw_msb",
   "got": 58.795025028155415,
   "expected": 58.795025028155415,
   "ok": true
  },
  {
   "tier": "c",
-  "key": "sp_s11_msb == s11_msb",
+  "key": "alg_s11_msb == s11_msb",
   "got": -9.941061684360148,
   "expected": -9.941061684360148,
   "ok": true
  },
  {
   "tier": "c",
-  "key": "sp_s11_edge_msb == s11_edge_ghz",
+  "key": "alg_s11_edge_msb == s11_edge_ghz",
   "got": 31.73661561930895,
   "expected": 31.73661561930895,
   "ok": true
  },
  {
   "tier": "c",
-  "key": "sp_s22 == s22",
+  "key": "alg_s22 == s22",
   "got": -9.241013312054475,
   "expected": -9.241013312054475,
   "ok": true
  },
  {
   "tier": "c",
-  "key": "sp_s22_edge_ghz == s22_edge_ghz",
+  "key": "alg_s22_edge_ghz == s22_edge_ghz",
   "got": 45.47298766371487,
   "expected": 45.47298766371487,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "alg_pn_gain_imb_db == pn_gain_imb_db",
+  "got": 0.028479507000000015,
+  "expected": 0.028479507000000015,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "alg_pn_phase_imb_deg == pn_phase_imb_deg",
+  "got": 0.505449800000008,
+  "expected": 0.505449800000008,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "alg_cm_leak_dbc == cm_leak_dbc",
+  "got": -46.52480375830394,
+  "expected": -46.52480377252983,
   "ok": true
  },
  {
@@ -838,7 +901,7 @@
  {
   "tier": "d",
   "key": "cm_leak_dbc",
-  "got": -39.453753417596275,
+  "got": -39.45375342659628,
   "expected": -39.453753417596275,
   "ok": true
  },
@@ -886,44 +949,65 @@
  },
  {
   "tier": "d",
-  "key": "sp_msb_gain == msb_gain",
+  "key": "alg_msb_gain == msb_gain",
   "got": 8.20454565,
   "expected": 8.20454565,
   "ok": true
  },
  {
   "tier": "d",
-  "key": "sp_bw_msb == bw_msb",
+  "key": "alg_bw_msb == bw_msb",
   "got": 61.05083250474958,
   "expected": 61.05083250474958,
   "ok": true
  },
  {
   "tier": "d",
-  "key": "sp_s11_msb == s11_msb",
+  "key": "alg_s11_msb == s11_msb",
   "got": -10.046217719806679,
   "expected": -10.046217719806679,
   "ok": true
  },
  {
   "tier": "d",
-  "key": "sp_s11_edge_msb == s11_edge_ghz",
+  "key": "alg_s11_edge_msb == s11_edge_ghz",
   "got": 32.204684233906036,
   "expected": 32.204684233906036,
   "ok": true
  },
  {
   "tier": "d",
-  "key": "sp_s22 == s22",
+  "key": "alg_s22 == s22",
   "got": -10.720097993343712,
   "expected": -10.720097993343712,
   "ok": true
  },
  {
   "tier": "d",
-  "key": "sp_s22_edge_ghz == s22_edge_ghz",
+  "key": "alg_s22_edge_ghz == s22_edge_ghz",
   "got": 54.72876851520201,
   "expected": 54.72876851520201,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "alg_pn_gain_imb_db == pn_gain_imb_db",
+  "got": 0.05270322599999999,
+  "expected": 0.05270322599999999,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "alg_pn_phase_imb_deg == pn_phase_imb_deg",
+  "got": 1.1663460999999984,
+  "expected": 1.1663460999999984,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "alg_cm_leak_dbc == cm_leak_dbc",
+  "got": -39.453753417596275,
+  "expected": -39.45375342659628,
   "ok": true
  },
  {
