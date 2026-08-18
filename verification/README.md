@@ -10,7 +10,7 @@ the shipped GDS. Two ways to do it:
   `--no-eye`): runs every deck, extracts every number, prints PASS/FAIL against
   `expected.json` (the values on record, frozen from `report/data/metrics.json`),
   and exits non-zero on any miss. Last run on the research server:
-  **53/53 numbers reproduce** for tiers a and d (see `last_run.json`).
+  **115/115 numbers reproduce** for all four tiers (see `last_run.json`).
 * **manual** — the recipe below, one deck at a time, then `extract.py` prints
   each number next to its definition. Only numpy is needed for the extraction.
 
