@@ -99,8 +99,12 @@ Every metric is computed by **two independent methods** and cross-checked:
    cos/sin projection) of the steady window. S21 as differential power-wave
    gain `2·Vout/Vsrc` into 50 Ω/side references (the paper's VNA convention);
    S11/S22 via `Z = V/I` at the port.
-2. **`ac`:** plain `.op` + `.ac` with the same in-deck power-wave math
-   (`tb_*_op_ac*.spice`), full sweep in one run (~30× cheaper).
+2. **`sp`:** plain `.op` + ngspice's built-in S-parameter analysis (`sp dec …`,
+   port sources `portnum`/`z0 50`; differential Sdd formed from the p/n port
+   pair), full sweep in one run (~30× cheaper). The original in-deck
+   power-wave algebra (`.ac`, `zin = vdiff·100/(1−vdiff)`, `S = (z−100)/(z+100)`,
+   `S21 = 2·Vout/Vsrc`) is kept as `method="algebra"` and agrees to all printed
+   digits (`verification/`).
 
 **EIC finding JPP-361 ("the self-heating VBIC HBT does not converge in
 ngspice `.op`/`.ac`/`.dc`") reproduces on ngspice-44 but NOT on ngspice-45:**

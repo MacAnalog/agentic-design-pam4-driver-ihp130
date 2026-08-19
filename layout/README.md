@@ -281,8 +281,8 @@ instrument note are in `codesign/README.md`.
 
 **Reviewer evidence.** `../report/` (rebuilt by `make report`) regenerates
 v1 (original floorplan, nominal sizing), v2 and v3 from `gen_layout.py`,
-re-runs DRC / LVS / kpex on each, re-simulates every bench (S11/S21/S22 at
-`dec 100`, p/n balance, DC transfer, 48 GBd eyes) alongside the schematic,
+re-runs DRC / LVS / kpex on each, re-simulates every bench (S11/S21/S22 via
+ngspice `sp dec 100`, p/n balance, DC transfer, 48 GBd eyes) alongside the schematic,
 and keeps the GDS + LVS/kpex/post-layout netlists + signoff logs per tier
 next to the tables and KLayout renders. The p/n matching audit (v2 0.03 dB / 0.5° / −46.5 dBc, v3 0.053 dB / 1.18° /
 −39.4 dBc, **v4 0.047 dB / 0.99° / −40.8 dBc** — all halo 8; at halo 20 v4

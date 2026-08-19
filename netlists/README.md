@@ -14,20 +14,22 @@ ngspice -b tb_pam4_sparam_msb_1ghz.spice
 |------|----------|
 | `tb_lsb_bias.spice` | Bias/operating point: ramp-and-hold; power + per-device V_CE. |
 | `tb_lsb_sparam_in_1ghz.spice` | S21/S11 tone probe, in driven, f=1 GHz (LF gain point); run_verify.py sweeps 1..70 GHz. |
-| `tb_lsb_op_ac.spice` | Direct .op + .ac S21/S11 sweep (ngspice-45; fails on ngspice-44, see README). |
+| `tb_lsb_op_ac.spice` | Direct .op + ngspice `sp` S-parameter sweep, S21/S11 (Sdd) on port sources (ngspice-45; fails on ngspice-44, see README). |
 | `tb_msb_bias.spice` | Bias/operating point: ramp-and-hold; power + per-device V_CE. |
 | `tb_msb_sparam_in_1ghz.spice` | S21/S11 tone probe, in driven, f=1 GHz (LF gain point); run_verify.py sweeps 1..70 GHz. |
-| `tb_msb_op_ac.spice` | Direct .op + .ac S21/S11 sweep (ngspice-45; fails on ngspice-44, see README). |
+| `tb_msb_op_ac.spice` | Direct .op + ngspice `sp` S-parameter sweep, S21/S11 (Sdd) on port sources (ngspice-45; fails on ngspice-44, see README). |
 | `tb_pam4_bias.spice` | Bias/operating point: ramp-and-hold; power + per-device V_CE. |
 | `tb_pam4_sparam_msb_1ghz.spice` | S21/S11 tone probe, msb driven, f=1 GHz (LF gain point); run_verify.py sweeps 1..70 GHz. |
-| `tb_pam4_op_ac.spice` | Direct .op + .ac S21/S11 sweep (ngspice-45; fails on ngspice-44, see README). |
+| `tb_pam4_op_ac.spice` | Direct .op + ngspice `sp` S-parameter sweep, S21/S11 (Sdd) on port sources (ngspice-45; fails on ngspice-44, see README). |
 | `tb_pam4_sparam_lsb_1ghz.spice` | S21/S11 tone probe, LSB driven, f=1 GHz. |
-| `tb_pam4_op_ac_lsb.spice` | Direct .op + .ac S21/S11 sweep, LSB driven. |
+| `tb_pam4_op_ac_lsb.spice` | Direct .op + `sp` S21/S11 (Sdd) sweep, LSB driven. |
 | `tb_pam4_s22_50ghz.spice` | S22 output-reflection tone probe, f=50 GHz (band edge); run_verify.py sweeps 2..50 GHz. |
-| `tb_pam4_op_ac_s22.spice` | Direct .op + .ac S22 sweep. |
+| `tb_pam4_op_ac_s22.spice` | Direct .op + `sp` S22 (Sdd22) sweep on output port sources. |
 | `tb_pam4_swing_1ghz.spice` | Large-signal swing: LSB+MSB driven in phase, 1.6 Vpp input, 1 GHz; run_verify.py sweeps 0.2..1.6 Vpp. |
 | `tb_pam4_eye_48gbaud.spice` | 48 GBaud PAM-4 eye: independent MSB/LSB NRZ streams (seed 7, 120 symbols, 200 mV input). |
 
 `tb_*_op_ac*` decks need ngspice-45 (the self-heating VBIC fails .op/.ac on
-ngspice-44 — see ../README.md). All other decks are ngspice-44-safe transient
-ramp-from-0 probes.
+ngspice-44 — see ../README.md); they use ngspice's built-in S-parameter
+analysis (`sp`, port sources `portnum`/`z0 50`, mixed-mode Sdd formed from the
+p/n port pair). All other decks are ngspice-44-safe transient ramp-from-0
+probes (the method-independent cross-check).

@@ -1,0 +1,1091 @@
+[
+ {
+  "tier": "a",
+  "key": "lsb_gain",
+  "got": 3.09031359,
+  "expected": 3.09031359,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "msb_gain",
+  "got": 9.06041338,
+  "expected": 9.06041338,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "weight",
+  "got": 5.97009979,
+  "expected": 5.97009979,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "bw_lsb",
+  "got": 92.73660096116492,
+  "expected": 92.73660096116492,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "bw_msb",
+  "got": 66.58935104258315,
+  "expected": 66.58935104258315,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "bw",
+  "got": 66.58935104258315,
+  "expected": 66.58935104258315,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "s11_lsb",
+  "got": -16.433948937017735,
+  "expected": -16.433948937017735,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "s11_msb",
+  "got": -10.873713058911163,
+  "expected": -10.873713058911163,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "s11",
+  "got": -10.873713058911163,
+  "expected": -10.873713058911163,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "s11_edge_ghz",
+  "got": 36.142831498500996,
+  "expected": 36.142831498500996,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "s22",
+  "got": -14.751502713692664,
+  "expected": -14.751502713692664,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "s22_edge_ghz",
+  "got": 88.72742435470984,
+  "expected": 88.72742435470984,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "pn_gain_imb_db",
+  "got": 0.0,
+  "expected": 0.0,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "pn_phase_imb_deg",
+  "got": 4.999999987376214e-07,
+  "expected": 4.999999987376214e-07,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "cm_leak_dbc",
+  "got": -291.62847582,
+  "expected": -291.44839208999997,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "swing",
+  "got": 2.36873876,
+  "expected": 2.36873876,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "power",
+  "got": 191.02721522170543,
+  "expected": 191.02721522170543,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "ic_ma_per_finger",
+  "got": 2.6666666666666665,
+  "expected": 2.6666666666666665,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "eye_rlm",
+  "got": 0.9950782162089395,
+  "expected": 0.9950782162089395,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "eye_min_v",
+  "got": 0.254065731,
+  "expected": 0.254065731,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "eye_vpp",
+  "got": 0.87450685,
+  "expected": 0.87450685,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "alg_msb_gain == msb_gain",
+  "got": 9.06041338,
+  "expected": 9.06041338,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "alg_bw_msb == bw_msb",
+  "got": 66.58935104258315,
+  "expected": 66.58935104258315,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "alg_s11_msb == s11_msb",
+  "got": -10.873713058911163,
+  "expected": -10.873713058911163,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "alg_s11_edge_msb == s11_edge_ghz",
+  "got": 36.142831498500996,
+  "expected": 36.142831498500996,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "alg_s22 == s22",
+  "got": -14.751502713692664,
+  "expected": -14.751502713692664,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "alg_s22_edge_ghz == s22_edge_ghz",
+  "got": 88.72742435470984,
+  "expected": 88.72742435470984,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "alg_pn_gain_imb_db == pn_gain_imb_db",
+  "got": 0.0,
+  "expected": 0.0,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "alg_pn_phase_imb_deg == pn_phase_imb_deg",
+  "got": 4.999999987376214e-07,
+  "expected": 4.999999987376214e-07,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "alg_cm_leak_dbc == cm_leak_dbc",
+  "got": -291.44839208999997,
+  "expected": -291.62847582,
+  "ok": true
+ },
+ {
+  "tier": "a",
+  "key": "eye_openings_v",
+  "got": [
+   0.254929144,
+   0.254065731,
+   0.262382697
+  ],
+  "expected": [
+   0.254929144,
+   0.254065731,
+   0.262382697
+  ],
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "lsb_gain",
+  "got": 2.94807457,
+  "expected": 2.94807457,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "msb_gain",
+  "got": 8.91855433,
+  "expected": 8.91855433,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "weight",
+  "got": 5.970479759999999,
+  "expected": 5.970479759999999,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "bw_lsb",
+  "got": 67.62038558905775,
+  "expected": 67.62038558905775,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "bw_msb",
+  "got": 51.57724307153131,
+  "expected": 51.57724307153131,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "bw",
+  "got": 51.57724307153131,
+  "expected": 51.57724307153131,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "s11_lsb",
+  "got": -13.780270828859415,
+  "expected": -13.780270828859415,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "s11_msb",
+  "got": -8.89712899381931,
+  "expected": -8.89712899381931,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "s11",
+  "got": -8.89712899381931,
+  "expected": -8.89712899381931,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "s11_edge_ghz",
+  "got": 27.424173146617104,
+  "expected": 27.424173146617104,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "s22",
+  "got": -7.965168663836293,
+  "expected": -7.965168663836293,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "s22_edge_ghz",
+  "got": 38.49006574689413,
+  "expected": 38.49006574689413,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "pn_gain_imb_db",
+  "got": 0.016722285000000003,
+  "expected": 0.016722285000000003,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "pn_phase_imb_deg",
+  "got": 0.23709930000001123,
+  "expected": 0.23709930000001123,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "cm_leak_dbc",
+  "got": -52.80937222538864,
+  "expected": -52.8093722212906,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "swing",
+  "got": 2.35613938,
+  "expected": 2.35613938,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "power",
+  "got": 191.02732721240312,
+  "expected": 191.02732721240312,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "ic_ma_per_finger",
+  "got": 2.6666666666666665,
+  "expected": 2.6666666666666665,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "eye_rlm",
+  "got": 0.9904919331865216,
+  "expected": 0.9904919331865216,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "eye_min_v",
+  "got": 0.2435141158,
+  "expected": 0.2435141158,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "eye_vpp",
+  "got": 0.860080979,
+  "expected": 0.860080979,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "alg_msb_gain == msb_gain",
+  "got": 8.91855433,
+  "expected": 8.91855433,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "alg_bw_msb == bw_msb",
+  "got": 51.57724307153131,
+  "expected": 51.57724307153131,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "alg_s11_msb == s11_msb",
+  "got": -8.89712899381931,
+  "expected": -8.89712899381931,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "alg_s11_edge_msb == s11_edge_ghz",
+  "got": 27.424173146617104,
+  "expected": 27.424173146617104,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "alg_s22 == s22",
+  "got": -7.965168663836293,
+  "expected": -7.965168663836293,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "alg_s22_edge_ghz == s22_edge_ghz",
+  "got": 38.49006574689413,
+  "expected": 38.49006574689413,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "alg_pn_gain_imb_db == pn_gain_imb_db",
+  "got": 0.016722285000000003,
+  "expected": 0.016722285000000003,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "alg_pn_phase_imb_deg == pn_phase_imb_deg",
+  "got": 0.23709930000001123,
+  "expected": 0.23709930000001123,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "alg_cm_leak_dbc == cm_leak_dbc",
+  "got": -52.8093722212906,
+  "expected": -52.80937222538864,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "eye_openings_v",
+  "got": [
+   0.248330925,
+   0.2435141158,
+   0.25508569600000003
+  ],
+  "expected": [
+   0.248330925,
+   0.2435141158,
+   0.25508569600000003
+  ],
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "drc_pass",
+  "got": true,
+  "expected": true,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "lvs_match",
+  "got": true,
+  "expected": true,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "width_um",
+  "got": 117.20000000000002,
+  "expected": 117.20000000000002,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "height_um",
+  "got": 62.92,
+  "expected": 62.92,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "area_um2",
+  "got": 7374.224000000001,
+  "expected": 7374.224000000001,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "pex_n_c",
+  "got": 135,
+  "expected": 135,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "pex_n_r",
+  "got": 0,
+  "expected": 0,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "regen_xor_area",
+  "got": 0.0,
+  "expected": 0.0,
+  "ok": true
+ },
+ {
+  "tier": "b",
+  "key": "regen_area_um2",
+  "got": 7374.224000000001,
+  "expected": 7374.224000000001,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "lsb_gain",
+  "got": 2.27322126,
+  "expected": 2.27322126,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "msb_gain",
+  "got": 8.24896605,
+  "expected": 8.24896605,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "weight",
+  "got": 5.97574479,
+  "expected": 5.97574479,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "bw_lsb",
+  "got": 78.89940782772524,
+  "expected": 78.89940782772524,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "bw_msb",
+  "got": 58.795025028155415,
+  "expected": 58.795025028155415,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "bw",
+  "got": 58.795025028155415,
+  "expected": 58.795025028155415,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "s11_lsb",
+  "got": -15.505179542642527,
+  "expected": -15.505179542642527,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "s11_msb",
+  "got": -9.941061684360148,
+  "expected": -9.941061684360148,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "s11",
+  "got": -9.941061684360148,
+  "expected": -9.941061684360148,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "s11_edge_ghz",
+  "got": 31.73661561930895,
+  "expected": 31.73661561930895,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "s22",
+  "got": -9.241013312054475,
+  "expected": -9.241013312054475,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "s22_edge_ghz",
+  "got": 45.47298766371487,
+  "expected": 45.47298766371487,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "pn_gain_imb_db",
+  "got": 0.028479507000000015,
+  "expected": 0.028479507000000015,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "pn_phase_imb_deg",
+  "got": 0.505449800000008,
+  "expected": 0.505449800000008,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "cm_leak_dbc",
+  "got": -46.52480377252983,
+  "expected": -46.52480375830394,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "swing",
+  "got": 2.21027662,
+  "expected": 2.21027662,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "power",
+  "got": 179.1230747472868,
+  "expected": 179.1230747472868,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "ic_ma_per_finger",
+  "got": 2.5,
+  "expected": 2.5,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "eye_rlm",
+  "got": 0.9947473643074896,
+  "expected": 0.9947473643074896,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "eye_min_v",
+  "got": 0.22952563450000002,
+  "expected": 0.22952563450000002,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "eye_vpp",
+  "got": 0.7974673109999999,
+  "expected": 0.7974673109999999,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "alg_msb_gain == msb_gain",
+  "got": 8.24896605,
+  "expected": 8.24896605,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "alg_bw_msb == bw_msb",
+  "got": 58.795025028155415,
+  "expected": 58.795025028155415,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "alg_s11_msb == s11_msb",
+  "got": -9.941061684360148,
+  "expected": -9.941061684360148,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "alg_s11_edge_msb == s11_edge_ghz",
+  "got": 31.73661561930895,
+  "expected": 31.73661561930895,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "alg_s22 == s22",
+  "got": -9.241013312054475,
+  "expected": -9.241013312054475,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "alg_s22_edge_ghz == s22_edge_ghz",
+  "got": 45.47298766371487,
+  "expected": 45.47298766371487,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "alg_pn_gain_imb_db == pn_gain_imb_db",
+  "got": 0.028479507000000015,
+  "expected": 0.028479507000000015,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "alg_pn_phase_imb_deg == pn_phase_imb_deg",
+  "got": 0.505449800000008,
+  "expected": 0.505449800000008,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "alg_cm_leak_dbc == cm_leak_dbc",
+  "got": -46.52480375830394,
+  "expected": -46.52480377252983,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "eye_openings_v",
+  "got": [
+   0.231463456,
+   0.22952563450000002,
+   0.23817769
+  ],
+  "expected": [
+   0.231463456,
+   0.22952563450000002,
+   0.23817769
+  ],
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "drc_pass",
+  "got": true,
+  "expected": true,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "lvs_match",
+  "got": true,
+  "expected": true,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "width_um",
+  "got": 99.60000000000001,
+  "expected": 99.60000000000001,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "height_um",
+  "got": 75.82,
+  "expected": 75.82,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "area_um2",
+  "got": 7551.672,
+  "expected": 7551.672,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "pex_n_c",
+  "got": 131,
+  "expected": 131,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "pex_n_r",
+  "got": 0,
+  "expected": 0,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "regen_xor_area",
+  "got": 0.0,
+  "expected": 0.0,
+  "ok": true
+ },
+ {
+  "tier": "c",
+  "key": "regen_area_um2",
+  "got": 7551.672,
+  "expected": 7551.672,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "lsb_gain",
+  "got": 2.23225342,
+  "expected": 2.23225342,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "msb_gain",
+  "got": 8.20454565,
+  "expected": 8.20454565,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "weight",
+  "got": 5.97229223,
+  "expected": 5.97229223,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "bw_lsb",
+  "got": 82.37918192339683,
+  "expected": 82.37918192339683,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "bw_msb",
+  "got": 61.05083250474958,
+  "expected": 61.05083250474958,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "bw",
+  "got": 61.05083250474958,
+  "expected": 61.05083250474958,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "s11_lsb",
+  "got": -15.085217871950901,
+  "expected": -15.085217871950901,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "s11_msb",
+  "got": -10.046217719806679,
+  "expected": -10.046217719806679,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "s11",
+  "got": -10.046217719806679,
+  "expected": -10.046217719806679,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "s11_edge_ghz",
+  "got": 32.204684233906036,
+  "expected": 32.204684233906036,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "s22",
+  "got": -10.720097993343712,
+  "expected": -10.720097993343712,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "s22_edge_ghz",
+  "got": 54.72876851520201,
+  "expected": 54.72876851520201,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "pn_gain_imb_db",
+  "got": 0.05270322599999999,
+  "expected": 0.05270322599999999,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "pn_phase_imb_deg",
+  "got": 1.1663460999999984,
+  "expected": 1.1663460999999984,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "cm_leak_dbc",
+  "got": -39.45375342659628,
+  "expected": -39.453753417596275,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "swing",
+  "got": 2.25763576,
+  "expected": 2.25763576,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "power",
+  "got": 190.19263383255813,
+  "expected": 190.19263383255813,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "ic_ma_per_finger",
+  "got": 2.655,
+  "expected": 2.655,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "eye_rlm",
+  "got": 0.9948791945799104,
+  "expected": 0.9948791945799104,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "eye_min_v",
+  "got": 0.2299348795,
+  "expected": 0.2299348795,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "eye_vpp",
+  "got": 0.793453596,
+  "expected": 0.793453596,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "alg_msb_gain == msb_gain",
+  "got": 8.20454565,
+  "expected": 8.20454565,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "alg_bw_msb == bw_msb",
+  "got": 61.05083250474958,
+  "expected": 61.05083250474958,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "alg_s11_msb == s11_msb",
+  "got": -10.046217719806679,
+  "expected": -10.046217719806679,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "alg_s11_edge_msb == s11_edge_ghz",
+  "got": 32.204684233906036,
+  "expected": 32.204684233906036,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "alg_s22 == s22",
+  "got": -10.720097993343712,
+  "expected": -10.720097993343712,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "alg_s22_edge_ghz == s22_edge_ghz",
+  "got": 54.72876851520201,
+  "expected": 54.72876851520201,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "alg_pn_gain_imb_db == pn_gain_imb_db",
+  "got": 0.05270322599999999,
+  "expected": 0.05270322599999999,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "alg_pn_phase_imb_deg == pn_phase_imb_deg",
+  "got": 1.1663460999999984,
+  "expected": 1.1663460999999984,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "alg_cm_leak_dbc == cm_leak_dbc",
+  "got": -39.453753417596275,
+  "expected": -39.45375342659628,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "eye_openings_v",
+  "got": [
+   0.231524407,
+   0.2299348795,
+   0.237891821
+  ],
+  "expected": [
+   0.231524407,
+   0.2299348795,
+   0.237891821
+  ],
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "drc_pass",
+  "got": true,
+  "expected": true,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "lvs_match",
+  "got": true,
+  "expected": true,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "width_um",
+  "got": 97.62,
+  "expected": 97.62,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "height_um",
+  "got": 70.48,
+  "expected": 70.48,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "area_um2",
+  "got": 6880.257600000001,
+  "expected": 6880.257600000001,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "pex_n_c",
+  "got": 126,
+  "expected": 126,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "pex_n_r",
+  "got": 0,
+  "expected": 0,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "regen_xor_area",
+  "got": 0.0,
+  "expected": 0.0,
+  "ok": true
+ },
+ {
+  "tier": "d",
+  "key": "regen_area_um2",
+  "got": 6880.257600000001,
+  "expected": 6880.257600000001,
+  "ok": true
+ }
+]

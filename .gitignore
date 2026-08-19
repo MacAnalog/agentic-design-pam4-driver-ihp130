@@ -41,3 +41,6 @@ report/work/
 
 # scratch project_setup copies written by codesign/remeasure.py
 layout/codesign/_rm_*_project_setup.yaml
+# verification scratch: deck outputs + DRC/LVS/regen work dirs (decks + expected.json ARE tracked)
+verification/decks/*/*.csv
+verification/work/
