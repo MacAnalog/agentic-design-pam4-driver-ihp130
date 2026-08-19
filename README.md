@@ -8,18 +8,18 @@ layout, kpex extraction, and a layout + electrical co-optimization that
 closes **all eight post-layout specs** — first with a block-local optimizer
 (v2), then by running the paper's **layout/schematic co-design algorithm
 through the SpiceXplorer platform** (`spicexplorer-optimize`,
-`sim_engine: layout`; v3, the layout of record). The audit trail is four
-notebooks plus a self-contained **reviewer report** ([`report/`](report/README.md):
-schematic vs v1 / v2 / v3 layouts through the same benches, DRC/LVS/PEX
+`sim_engine: layout`; three rounds — **v4** is the layout of record). The audit
+trail is four notebooks plus a self-contained **reviewer report** ([`report/`](report/README.md):
+schematic vs v1 / v2 / v3 / v4 layouts through the same benches, DRC/LVS/PEX
 evidence, GDS + netlists, KLayout renders, eyes, tables — `make report`);
 every result below reproduces from this repo.
 
 ## The layout journey
 
 Original v1 layout (edge-fed input, 1.8 µm output-bus gap, nx=2 / R_C=70 Ω
-electrical point) → the co-designed layout of record (v3):
+electrical point) → the co-designed layout of record (v4):
 
-![before/after layout: original v1 vs co-designed v3](layout/before_after.png)
+![before/after layout: original v1 vs the co-designed layout of record](layout/before_after.png)
 
 The first optimization pass scored only S11/BW/gain/power — and its winner
 (nx=2, R_C=70 Ω) sailed through those while silently **failing S22
@@ -59,6 +59,30 @@ layout review into five **structural INT knobs** (`bus_trim`, `sub_bus`,
 | S11 @32 GHz / S22 @50 GHz | −9.94 / −9.24 dB ✗✗ | **−10.05 / −10.72 dB** ✅✅ (halo 20: −10.07 / −10.78) |
 | gain LSB / MSB, BW, swing, power | 2.27 / 8.25 dB, 58.8 GHz, 2.21 Vpp, 179 mW | 2.23 / 8.21 dB, 61.1 GHz, 2.26 Vpp, 190 mW |
 | core area | 7552 µm² | **6880 µm²** (−9 %; −39 % vs the paper's 11 300) |
+
+### v4 — co-design round 3: p/n balance as an objective (2026-08-18)
+
+The r2 review's open item was **matching**: the accepted v3 floorplan is
+asymmetric by construction (one output bus on TopMetal2, per-net bus trimming)
+and its p/n balance had degraded (0.053 dB / 1.18° / −39.4 dBc against v2's
+0.03 / 0.5° / −46.5). Round 3 measured the balance of *both* DAC paths in the
+hook, made it a **reward** in `J` (with power), and added the knobs the
+extraction pointed at — the symmetric/mirrored `out_split` variants, a
+p/n-swapped input row order, and `rc_gap` (the outn bus ↔ TopMetal2 vcc rail,
+2.34 fF against outp's 0.26). 520 trials over 14 islands:
+
+| | v3 | **v4 accepted** |
+|---|---|---|
+| S11 @32 GHz / S22 @50 GHz (halo 20 CC) | −10.070 / −10.790 dB | **−10.073 / −10.812 dB** |
+| p/n \|gain\| / phase / diff→CM ≤ 48 GHz | 0.043 dB / 0.88° / −41.9 dBc | **0.035 dB / 0.64° / −44.5 dBc** |
+| gain LSB / MSB, BW, swing, power | 2.232 / 8.205 dB, 61.2 GHz, 2.26 Vpp, 190.2 mW | 2.269 / 8.244 dB, 61.4 GHz, 2.24 Vpp, **185.0 mW** |
+| core area | 6880 µm² | 7055 µm² (+2.5 %; −38 % vs the paper's 11 300) |
+
+The *symmetric* metal options and the input-row swap were measured and are
+**nulls** — the balance came from the per-net C budget (output-net asymmetry
+2.01 → 1.46 fF) and the electrical point; and the round's ceiling is that
+every larger balance gain costs 0.1–0.5 dB of S22 (only 6 of 520 trials hold
+both reflections at the v3 level).
 
 Full story, rounds table, ceiling analysis and the annotated parameterized
 layout: [layout/codesign/README.md](layout/codesign/README.md); notebook 04.
@@ -142,7 +166,7 @@ Both columns through the same `driver_lib` benches (notebook 04 §5):
 
 ![first-pass vs co-designed layout, KLayout render](report/figs/fig_layout_b_vs_d.png)
 
-![v2 vs v3 S-parameters](notebooks/report_figs/sparams_v2_v3_post_layout.png)
+![v2 vs v4 S-parameters](notebooks/report_figs/sparams_v2_v4_post_layout.png)
 
 **S-parameters, all four tiers** (S21 both paths, S11, S22 — schematic /
 first-pass / v2 / v3, `report/`):

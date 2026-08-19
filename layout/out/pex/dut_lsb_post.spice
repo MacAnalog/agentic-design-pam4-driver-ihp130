@@ -3,73 +3,73 @@
 *** -----------------------------------------------------
 ***     Extraction Engine: KPEX/2.5D
 ***     Technology: ihp_sg13g2
-***     Date: 2026-08-18 02:08:43
+***     Date: 2026-08-18 20:23:49
 *********************************************************
 
 .SUBCKT pam4drv_lsb_lay sub vcmb inn inp tail vcasc outp outn vcc
-XQ_1 outn vcasc \$20 sub npn13G2 Nx=3
-XQ_2 outp vcasc \$19 sub npn13G2 Nx=3
-XQ_3 \$19 inp \$6 sub npn13G2 Nx=3
-XQ_4 \$20 inn \$7 sub npn13G2 Nx=3
-XR_5 vcmb inp sub rsil w=0.58u l=2.85u m=1
-XR_6 vcmb inn sub rsil w=0.58u l=2.85u m=1
-XR_7 tail \$6 sub rsil w=4.61u l=0.85u m=1
-XR_8 tail \$7 sub rsil w=4.61u l=0.85u m=1
-XR_9 outp vcc sub rsil w=1.01u l=5.43u m=1
-XR_10 outn vcc sub rsil w=1.01u l=5.43u m=1
-Cext_1 \$19 \$6 1.34226f
-Cext_2 \$19 \$7 5.58889a
-Cext_3 \$19 inp 50.9066a
-Cext_4 \$19 outp 716.546a
-Cext_5 \$19 sub 21.173a
-Cext_6 \$19 vcasc 750.954a
-Cext_7 \$19 sub 2.21662f
-Cext_8 \$20 \$6 26.4759a
-Cext_9 \$20 \$7 1.32982f
-Cext_10 \$20 inn 50.9066a
-Cext_11 \$20 outn 661.201a
-Cext_12 \$20 sub 15.4225a
-Cext_13 \$20 vcasc 744.367a
-Cext_14 \$20 sub 2.22501f
-Cext_15 \$6 \$7 1.08982f
-Cext_16 \$6 inn 3.38161a
-Cext_17 \$6 inp 762.186a
-Cext_18 \$6 sub 11.7891a
-Cext_19 \$6 tail 333.35a
-Cext_20 \$6 vcasc 15.3808a
-Cext_21 \$6 sub 2.92935f
-Cext_22 \$7 inn 752.063a
-Cext_23 \$7 inp 2.3017a
-Cext_24 \$7 sub 8.63537a
-Cext_25 \$7 tail 329.653a
-Cext_26 \$7 vcasc 9.38567a
-Cext_27 \$7 sub 2.8516f
-Cext_28 inn inp 47.0114a
-Cext_29 inn sub 18.128a
-Cext_30 inn tail 117.82a
-Cext_31 inn vcmb 45.3698a
-Cext_32 inp sub 20.8804a
-Cext_33 inp tail 184.328a
-Cext_34 inp vcmb 8.98507a
-Cext_35 outn outp 75.1737a
+XQ_1 outp vcasc \$15 sub npn13G2 Nx=3
+XQ_2 \$16 inn \$7 sub npn13G2 Nx=3
+XQ_3 outn vcasc \$16 sub npn13G2 Nx=3
+XQ_4 \$15 inp \$6 sub npn13G2 Nx=3
+XR_5 vcmb inp sub rsil w=0.55u l=2.72u m=1
+XR_6 vcmb inn sub rsil w=0.55u l=2.72u m=1
+XR_7 tail \$6 sub rsil w=6.13u l=1.81u m=1
+XR_8 tail \$7 sub rsil w=6.13u l=1.81u m=1
+XR_9 outp vcc sub rsil w=1.13u l=6.44u m=1
+XR_10 outn vcc sub rsil w=1.13u l=6.44u m=1
+Cext_1 \$15 \$6 1.34159f
+Cext_2 \$15 \$7 6.34316a
+Cext_3 \$15 inp 50.8262a
+Cext_4 \$15 outp 747.626a
+Cext_5 \$15 sub 17.4504a
+Cext_6 \$15 vcasc 752.151a
+Cext_7 \$15 sub 2.13177f
+Cext_8 \$16 \$6 25.0893a
+Cext_9 \$16 \$7 1.33402f
+Cext_10 \$16 inn 50.8262a
+Cext_11 \$16 outn 683.442a
+Cext_12 \$16 sub 14.9923a
+Cext_13 \$16 vcasc 745.563a
+Cext_14 \$16 sub 2.13705f
+Cext_15 \$6 \$7 1.12197f
+Cext_16 \$6 inn 3.02149a
+Cext_17 \$6 inp 739.15a
+Cext_18 \$6 sub 10.5988a
+Cext_19 \$6 tail 195.826a
+Cext_20 \$6 vcasc 19.3436a
+Cext_21 \$6 sub 3.26238f
+Cext_22 \$7 inn 728.544a
+Cext_23 \$7 inp 1.90727a
+Cext_24 \$7 sub 8.77114a
+Cext_25 \$7 tail 194.676a
+Cext_26 \$7 vcasc 10.7916a
+Cext_27 \$7 sub 3.16833f
+Cext_28 inn inp 46.9061a
+Cext_29 inn sub 22.7589a
+Cext_30 inn tail 134.725a
+Cext_31 inn vcmb 49.4649a
+Cext_32 inp sub 22.6391a
+Cext_33 inp tail 241.918a
+Cext_34 inp vcmb 9.17654a
+Cext_35 outn outp 53.9976a
 Cext_36 outn sub 4.36374a
 Cext_37 outn vcasc 50.7333a
-Cext_38 outn vcc 467.895a
-Cext_39 outp sub 14.3046a
-Cext_40 outp vcasc 64.2722a
-Cext_41 outp vcc 61.3793a
-Cext_42 sub tail 18.7048a
-Cext_43 sub vcasc 3.09025a
-Cext_44 sub vcc 209.969a
-Cext_45 sub vcmb 280.416a
-Cext_46 sub inn 2.84892f
-Cext_47 sub inp 2.87521f
-Cext_48 sub outn 4.54733f
-Cext_49 sub outp 4.36568f
-Cext_50 sub sub 21.7475f
-Cext_51 sub tail 3.58134f
-Cext_52 sub vcasc 1.79491f
-Cext_53 sub vcc 4.13253f
-Cext_54 sub vcmb 3.09122f
-XCdeg_r0 \$6 \$7 cap_cmim w=3.45u l=3.45u
+Cext_38 outn vcc 287.78a
+Cext_39 outp sub 7.7818a
+Cext_40 outp vcasc 63.8457a
+Cext_41 outp vcc 46.5351a
+Cext_42 sub tail 20.224a
+Cext_43 sub vcasc 2.86697a
+Cext_44 sub vcc 200.466a
+Cext_45 sub vcmb 297.81a
+Cext_46 sub inn 2.96483f
+Cext_47 sub inp 2.97851f
+Cext_48 sub outn 4.17855f
+Cext_49 sub outp 3.94699f
+Cext_50 sub sub 21.858f
+Cext_51 sub tail 4.40912f
+Cext_52 sub vcasc 1.87499f
+Cext_53 sub vcc 3.93281f
+Cext_54 sub vcmb 3.25525f
+XCdeg_r0 \$6 \$7 cap_cmim w=3.67u l=3.67u
 .ENDS pam4drv_lsb_lay

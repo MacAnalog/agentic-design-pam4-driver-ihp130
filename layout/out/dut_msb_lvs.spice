@@ -8,14 +8,14 @@ QQ1M1 c1M1 inp e1M1 sub npn13G2 AE=0.063p PE=1.94u M=3
 QQ2M1 c2M1 inn e2M1 sub npn13G2 AE=0.063p PE=1.94u M=3
 QQ3M1 outp vcasc c1M1 sub npn13G2 AE=0.063p PE=1.94u M=3
 QQ4M1 outn vcasc c2M1 sub npn13G2 AE=0.063p PE=1.94u M=3
-RRE1M0 e1M0 tail0 rsil w=4.61u l=0.85u m=1
-RRE2M0 e2M0 tail0 rsil w=4.61u l=0.85u m=1
-RRE1M1 e1M1 tail1 rsil w=4.61u l=0.85u m=1
-RRE2M1 e2M1 tail1 rsil w=4.61u l=0.85u m=1
-RRbinp inp vcmb rsil w=0.58u l=2.85u m=1
-RRbinn inn vcmb rsil w=0.58u l=2.85u m=1
-RRcp outp vcc rsil w=1.01u l=5.43u m=1
-RRcn outn vcc rsil w=1.01u l=5.43u m=1
-CCdegM0 e2M0 e1M0 cap_cmim W=3.45u L=3.45u M=1
-CCdegM1 e2M1 e1M1 cap_cmim W=3.45u L=3.45u M=1
+RRE1M0 e1M0 tail0 rsil w=6.13u l=1.81u m=1
+RRE2M0 e2M0 tail0 rsil w=6.13u l=1.81u m=1
+RRE1M1 e1M1 tail1 rsil w=6.13u l=1.81u m=1
+RRE2M1 e2M1 tail1 rsil w=6.13u l=1.81u m=1
+RRbinp inp vcmb rsil w=0.55u l=2.72u m=1
+RRbinn inn vcmb rsil w=0.55u l=2.72u m=1
+RRcp outp vcc rsil w=1.13u l=6.44u m=1
+RRcn outn vcc rsil w=1.13u l=6.44u m=1
+CCdegM0 e2M0 e1M0 cap_cmim W=3.67u L=3.67u M=1
+CCdegM1 e2M1 e1M1 cap_cmim W=3.67u L=3.67u M=1
 .ends

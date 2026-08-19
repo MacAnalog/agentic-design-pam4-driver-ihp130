@@ -153,7 +153,9 @@ class LayoutParams:
     #    only (shortest sidewall; 3 Via1 -> unscored EM cost, see README)
     #  - out_split: 1 = outn bus on TopMetal2 while outp stays on out_layer
     #    (kills the TM1 bus<->bus sidewall C, which counts twice
-    #    differentially)
+    #    differentially); round 3 adds the two SYMMETRIC variants —
+    #    2 = both buses on TopMetal2, 3 = the mirror of 1 (outp on TM2) —
+    #    see out_layer_of() for why the mirror can beat both
     #  - sub_bus: 0 = Metal3 substrate bus above the cascode row (baseline;
     #    the output risers/buses cross it); 1 = tap columns tie straight up
     #    to the guard ring on Metal1, no M3 bus (out_off then measures from
@@ -165,14 +167,29 @@ class LayoutParams:
     #  - bus_trim: 1 = each output bus spans only ITS OWN risers + RC column
     #    (r1 buses both spanned all six risers: -16 um of TM1 per bus and a
     #    shorter outp||outn parallel run, the 2x-weighted differential C)
+    #  - in_order (co-design round 3, pam4 only): the input-bus ROW order.
+    #    0 = msbp|msbn|lsbp|lsbn (the v1..v3 order); 1 = msbn|msbp|lsbn|lsbp,
+    #    i.e. p and n swapped inside each channel. The r3 trial-1 ablation
+    #    showed the output-bus metal is NOT what sets the p/n balance (both
+    #    symmetric variants read WORSE than the asymmetric ones): the residual
+    #    imbalance is set by the INPUT rows, whose p and n buses sit at
+    #    different heights and see different neighbours (v3 per-net kpex
+    #    budget: ctot msbp 8.91 fF vs msbn 8.33 fF, and c(msbp,tail) 0.215 vs
+    #    c(msbn,tail) 0.079 fF). Swapping the rows flips the SIGN of that
+    #    input-side asymmetry so it can cancel the output-side one instead of
+    #    adding to it — which of the two signs wins is a measurement.
     c_strip: int = 0
+    in_order: int = 0
     bus_trim: int = 0
     out_split: int = 0
     sub_bus: int = 0
     cell_order: int = 0
     in_bus_lvl: int = 0
     rc_sep: float = 8.0     # RCp <-> RCn column separation
-    rc_gap: float = 2.0     # outn bus top -> RC body
+    rc_gap: float = 2.0     # outn bus top -> RC body (also sets the outn
+                            # bus -> vcc rail distance: y_vcc = RC top; a
+                            # round-3 knob — outn<->vcc was the biggest p/n
+                            # asymmetry of v3, 2.33 fF against outp's 0.25)
     vcc_w: float = 5.0      # vcc rail (TopMetal2)
     ring_margin: float = 3.0
     ring_w: float = 1.0
@@ -186,8 +203,32 @@ def in_bus_layer_of(p: "LayoutParams") -> str:
 
 
 def out_layer_of(p: "LayoutParams", net: str) -> str:
-    """Output-bus metal per polarity (`out_split`: outn on TopMetal2)."""
-    if p.out_split and net == "outn":
+    """Output-bus metal per polarity — the `out_split` structural option.
+
+    0  both buses on `out_layer` (TopMetal1)          — v2 geometry
+    1  outn on TopMetal2, outp on `out_layer`         — v3 (round-2 winner)
+    2  BOTH buses on TopMetal2                        — round-3 symmetric
+    3  outp on TopMetal2, outn on `out_layer`         — round-3 mirrored
+
+    Round-3 rationale (p/n balance, codesign/README "Matching audit"): the
+    floorplan loads outn more than outp even with both buses on the same
+    metal (v2, TopMetal1: 16.4 / 17.8 fF of wiring C to ground) because the
+    outn bus is the one that runs next to the RC column tops and the vcc
+    rail. `out_split=1` routes outn up to TopMetal2, whose taller via stack
+    (TopVia1 + TopVia2 + the TM1 pad) ADDS C — i.e. v3 put the extra stack C
+    on the already-heavier net and the gap grew 1.4 -> 3.1 fF (11.9 / 15.0).
+    `out_split=3` puts that same stack on the LIGHTER net (outp) so the two
+    asymmetries cancel; `out_split=2` gives both nets the identical stack and
+    should read v2-level balance with v3's bus height. Which of the three
+    wins is a measurement, so all three are in the knob range and the search
+    decides. (TM2 min width 2.0 / space 2.0 are honoured by `ow` and the
+    out_gap floor of 3.0; TM2.bR only bites for lines wider than 5 um, i.e.
+    the vcc rail, which no output bus comes within 5 um of.)"""
+    if p.out_split == 2:
+        return "TopMetal2"
+    if p.out_split == 1 and net == "outn":
+        return "TopMetal2"
+    if p.out_split == 3 and net == "outp":
         return "TopMetal2"
     return p.out_layer
 
@@ -516,6 +557,15 @@ def check_knob_interactions(p: LayoutParams, *, span: float, half: float,
       -> gap_x >= 2*(xs + stack_w/2 + 0.91 + span/2 - half).
     * TM1.b / Vn.b / TV1.a (RC column vs cell riser stacks on the same
       output bus): |rc_sep/2 - x_riser| >= (pad_rc + pad_riser)/2 + 1.7.
+    * TM2.bR (co-design round 3): a TopMetal2 output bus (out_split 1/2 put
+      outn there) runs parallel to the TopMetal2 vcc rail for the whole
+      block, and TM2.bR asks for 5.0 um of space — instead of TM2.b's 2.0 —
+      as soon as ONE of the two lines is *wider than* 5.0 um. `vcc_w` is
+      exactly 5.0, and the rule selects wide lines by a -2.5/+2.5 um
+      size cycle, which erases a 5.0 um line: verified by DRC on the
+      tightest candidate in the box (rc_gap 2.0, rc_ohm 40, rc_w 1.0 ->
+      4.33 um of space) — it PASSES the full IHP deck. The guard therefore
+      only fires if a future `vcc_w` knob goes above 5.0.
     """
     dev_cx = p.gap_x / 2 + half
     xs = cap_bbox_half(p.cdeg_ff) + 1.6
@@ -533,6 +583,16 @@ def check_knob_interactions(p: LayoutParams, *, span: float, half: float,
                     f"rc_sep {p.rc_sep}: RC column x={x_rc:.2f} within "
                     f"{pad + 1.7:.2f} um of a riser stack at x={xr:.2f} "
                     f"(TM1.b/Vn.b) — move rc_sep inside or outside the risers")
+    # TM2.bR: the outn bus is the TopMetal2 one nearest the 5 um-wide vcc
+    # rail (out_split 1 and 2); its edge-to-edge distance to the rail is
+    # rc_gap + len(RC) + 0.4 - vcc_w/2.
+    if out_layer_of(p, "outn") == "TopMetal2" and p.vcc_w > 5.0 + 1e-9:
+        d_vcc = p.rc_gap + res_len(p.rc_ohm, p.rc_w) + 0.4 - max(p.vcc_w, 2.0) / 2
+        if d_vcc < 5.0 - 1e-9:
+            raise ValueError(
+                f"rc_gap {p.rc_gap}: outn TopMetal2 bus is {d_vcc:.2f} um from "
+                f"the {p.vcc_w} um-wide TopMetal2 vcc rail, TM2.bR needs 5.0 "
+                f"(raise rc_gap or rc_ohm/rc_w so the RC body is longer)")
 
 
 # ---------------------------------------------------------------- DUT build
@@ -584,6 +644,8 @@ def build_dut(dut: str, p: LayoutParams = LayoutParams()):
     bus_y = {}
     rows = (["msbp", "msbn", "lsbp", "lsbn"] if dut == "pam4"
             else list(spec["inputs"]))
+    if p.in_order == 1 and dut == "pam4":
+        rows = ["msbn", "msbp", "lsbn", "lsbp"]     # p/n swapped per channel
     if p.in_shield and dut == "pam4":
         rows.insert(2, "__shield__")
     yb = y_tail - p.tail_h - p.in_off - p.in_bus_w / 2
@@ -985,19 +1047,41 @@ V2_LAYOUT = dict(nx=3, rc_ohm=50.0, rb_ohm=48.0, re_ohm=3.2, cdeg_ff=16.0,
 V2_BIASES = {"vcc": 4.0, "vcasc": 3.35, "vcmb": 1.9, "tail_ma": 15.0}
 
 # v3 = the point accepted from co-design round 2 (codesign/results/r2/
-# summary.json, island s3 trial 38 — the argmin of the paper's J over the
-# 8 signoff specs + DRC/LVS/PEX gates + I_C validity, measured at the exact
-# 32/50 GHz band edges with kpex CC halo 20). Every knob is an optimizer
-# output; the five structural options are the round-2 review's.
-FINAL_LAYOUT = dict(nx=3, rc_ohm=46.51, rb_ohm=49.92, re_ohm=3.24,
-                    cdeg_ff=18.45, re_w=4.61, rc_w=1.01, rb_w=0.58,
-                    gap_x=5.5, row_gap=1.74, cell_gap=4.76, out_gap=6.37,
-                    out_w=1.65, w_out=1.54, out_off=2.3, rc_sep=4.64,
-                    in_off=2.23, in_bus_gap=3.03, sub_off=1.34, stack_w=1.52,
-                    c_strip=2, bus_trim=1, out_split=1, sub_bus=1,
-                    cell_order=1, input_feed="center", in_bus_layer="Metal4",
-                    drop_layer="Metal2")
-FINAL_BIASES = {"vcc": 4.0, "vcasc": 3.31, "vcmb": 1.9, "tail_ma": 15.93}
+# summary.json, island s3 trial 38). Kept as the "before" of round 3.
+V3_LAYOUT = dict(nx=3, rc_ohm=46.51, rb_ohm=49.92, re_ohm=3.24,
+                 cdeg_ff=18.45, re_w=4.61, rc_w=1.01, rb_w=0.58,
+                 gap_x=5.5, row_gap=1.74, cell_gap=4.76, out_gap=6.37,
+                 out_w=1.65, w_out=1.54, out_off=2.3, rc_sep=4.64,
+                 in_off=2.23, in_bus_gap=3.03, sub_off=1.34, stack_w=1.52,
+                 c_strip=2, bus_trim=1, out_split=1, sub_bus=1,
+                 cell_order=1, input_feed="center", in_bus_layer="Metal4",
+                 drop_layer="Metal2")
+V3_BIASES = {"vcc": 4.0, "vcasc": 3.31, "vcmb": 1.9, "tail_ma": 15.93}
+
+# v4 = the point accepted from co-design round 3 (codesign/results/r3/
+# summary.json, island s23 trial 30 — the argmax-reward trial of the
+# ACCEPTANCE sub-box: the round-3 J (p/n balance + power + area rewarded on
+# top of the r2 reflection rewards) searched only where BOTH reflections stay
+# at or below the v3 values, so every reward it collected is a strict gain).
+# vs v3 at the search instrument (kpex CC halo 20, exact 32/50 GHz band edges):
+#   S11 -10.070 -> -10.073   S22 -10.790 -> -10.812   power 190.2 -> 185.0 mW
+#   |gain| imbalance 0.043 -> 0.035 dB, phase 0.88 -> 0.64 deg,
+#   diff->CM -41.9 -> -44.5 dBc   (area 6880 -> 7055 um2, +2.5 %)
+# The structural options are UNCHANGED from v3 (out_split 1, in_order 0):
+# round 3 measured the symmetric out_split variants (0 = both TM1, 2 = both
+# TM2, 3 = mirrored) and the p/n-swapped input row order (in_order 1) and
+# found them neutral-to-worse — the balance came from the continuous knobs
+# (out_gap 6.37 -> 4.81, rc_gap 2.0 -> 2.48, re_w 4.61 -> 6.13, stack_w
+# 1.52 -> 1.11, rc_sep 4.64 -> 6.32) plus the electrical point.
+FINAL_LAYOUT = dict(nx=3, rc_ohm=47.86, rb_ohm=51.03, re_ohm=3.54,
+                    cdeg_ff=20.95, re_w=6.13, rc_w=1.13, rb_w=0.55,
+                    gap_x=6.48, row_gap=1.25, cell_gap=5.2, out_gap=4.81,
+                    out_w=1.84, w_out=1.75, out_off=1.76, rc_sep=6.32,
+                    rc_gap=2.48, in_off=1.32, in_bus_gap=2.87, sub_off=1.49,
+                    stack_w=1.11, c_strip=2, bus_trim=1, out_split=1,
+                    sub_bus=1, in_order=0, cell_order=1, input_feed="center",
+                    in_bus_layer="Metal4", drop_layer="Metal2")
+FINAL_BIASES = {"vcc": 4.0, "vcasc": 3.2151, "vcmb": 1.9, "tail_ma": 15.4977}
 
 
 def main() -> None:

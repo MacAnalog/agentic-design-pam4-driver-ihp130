@@ -38,3 +38,6 @@ report/work/
 # the report keeps its own GDS next to the DRC/LVS/PEX evidence
 !report/layout/*/dut_pam4.gds
 !report/layout/*/signoff/*/*.log
+
+# scratch project_setup copies written by codesign/remeasure.py
+layout/codesign/_rm_*_project_setup.yaml

@@ -121,7 +121,11 @@ def load_params(path: str | None) -> gen_layout.LayoutParams:
     if not path:
         return gen_layout.LayoutParams(**gen_layout.FINAL_LAYOUT)
     d = json.load(open(path))
-    if "best" in d and "params" in d["best"]:              # a harvest summary.json
+    # a harvest summary.json: prefer the ACCEPTED trial (argmax-J is not the
+    # accepted point when J trades a spec margin the round refused to sell).
+    if d.get("accepted") and "params" in d["accepted"]:
+        d = d["accepted"]["params"]
+    elif "best" in d and "params" in d["best"]:
         d = d["best"]["params"]
     elif "params" in d:
         d = d["params"]
@@ -179,6 +183,9 @@ def annotate_knobs(ax, p: gen_layout.LayoutParams, g: dict, structural: bool = T
     else:
         _dim(ax, xr, y1 + H, xr, yp - p.out_w / 2, f"out_off {p.out_off:g}", K, off=(6.5, 0))
     _dim(ax, -p.rc_sep / 2, g["y_rc_p1"] + 1.0, p.rc_sep / 2, g["y_rc_p1"] + 1.0, f"rc_sep {p.rc_sep:g}", K, off=(0, 1.6))
+    _tag(ax, p.rc_sep / 2, (g["y_rc_p1"] + g["y_rc_p2"]) / 2,
+         f"rc_gap {p.rc_gap:g}\n(outn bus <-> RC / TM2 vcc)", p.rc_sep / 2 + 13,
+         (g["y_rc_p1"] + g["y_rc_p2"]) / 2 - 5, K)
     _tag(ax, -p.rc_sep / 2, (g["y_rc_p1"] + g["y_rc_p2"]) / 2, f"R_C rc_ohm={p.rc_ohm:g}\nrc_w {p.rc_w:g}",
          -p.rc_sep / 2 - 12, (g["y_rc_p1"] + g["y_rc_p2"]) / 2 + 1, E)
     ris = [x for x, n in g["risers"] if n == "outp"]
@@ -202,7 +209,8 @@ def annotate_knobs(ax, p: gen_layout.LayoutParams, g: dict, structural: bool = T
     _tag(ax, X1, g["y_tail"] - p.tail_h / 2, "tail_ma / vcasc\n(bench deck_params)", X1, g["y_tail"] - 4.5, E)
     if structural:
         txt = (f"structural knobs: cell_order={p.cell_order} ({'M0|M1|L0' if p.cell_order else 'M0|L0|M1'})  "
-               f"bus_trim={p.bus_trim}  out_split={p.out_split}  sub_bus={p.sub_bus}  c_strip={p.c_strip}")
+               f"bus_trim={p.bus_trim}  out_split={p.out_split}  sub_bus={p.sub_bus}  "
+               f"c_strip={p.c_strip}  in_order={p.in_order}")
         ax.text(0.5, 1.01, txt, transform=ax.transAxes, ha="center", va="bottom", fontsize=7.5, color=S)
 
 
@@ -329,6 +337,8 @@ def _metrics_of(path: str | None) -> dict | None:
     if not path:
         return None
     d = json.load(open(path))
+    if d.get("accepted"):
+        return d["accepted"].get("scalars")
     if "best" in d:
         return d["best"].get("scalars")
     return d.get("scalars", d)

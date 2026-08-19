@@ -5,15 +5,17 @@ BEFORE is always the ORIGINAL layout — the notebook-02 v1 point (nx=2, R_C=70
 on the original edge-fed floorplan, reconstructed via the LayoutParams
 defaults). AFTER is selectable:
 
-    --after v3   (default) the co-design accepted point `gen_layout.FINAL_LAYOUT`
-                 -> before_after.png
+    --after v4   (default) the layout of record `gen_layout.FINAL_LAYOUT`
+                 (co-design round 3)                  -> before_after.png
+    --after v3   the co-design round-2 point `gen_layout.V3_LAYOUT`
+                                                      -> before_after_v3.png
     --after v2   the 2026-08-09 block-local point `gen_layout.V2_LAYOUT`
                  -> before_after_v2.png
 
-(The v2 -> v3 comparison with the changed regions boxed is
+(The v2 -> v3 and v3 -> v4 comparisons with the changed regions boxed are
 codesign/figures.py before-after.)
 
-    PDK_ROOT=~/local/pdks python compare_layouts.py [--after v2|v3]
+    PDK_ROOT=~/local/pdks python compare_layouts.py [--after v2|v3|v4]
 """
 from __future__ import annotations
 
@@ -95,17 +97,20 @@ TITLES = {
 }
 SUPTITLE = {
     "after_v2": "PAM-4 driver layout — original v1 point vs the v2 full-spec resize + RF layout fixes (IHP SG13G2, pam4 DUT)",
-    "after_v3": "PAM-4 driver layout — original v1 point vs the layout/schematic co-design accepted point (IHP SG13G2, pam4 DUT)",
+    "after_v3": "PAM-4 driver layout — original v1 point vs the round-2 co-design point (IHP SG13G2, pam4 DUT)",
+    "after_v4": "PAM-4 driver layout — original v1 point vs the layout/schematic co-design accepted point (IHP SG13G2, pam4 DUT)",
 }
 AFTER_PARAMS = {"after_v2": lambda: gen_layout.V2_LAYOUT,
-                "after_v3": lambda: gen_layout.FINAL_LAYOUT}
-OUTNAME = {"after_v2": "before_after_v2.png", "after_v3": "before_after.png"}
+                "after_v3": lambda: gen_layout.V3_LAYOUT,
+                "after_v4": lambda: gen_layout.FINAL_LAYOUT}
+OUTNAME = {"after_v2": "before_after_v2.png", "after_v3": "before_after_v3.png",
+           "after_v4": "before_after.png"}
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--after", choices=["v2", "v3"], default="v3")
+    ap.add_argument("--after", choices=["v2", "v3", "v4"], default="v4")
     a = ap.parse_args()
     after = f"after_{a.after}"
     with tempfile.TemporaryDirectory() as tmp:

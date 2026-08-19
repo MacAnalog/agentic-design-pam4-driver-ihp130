@@ -126,15 +126,20 @@ def measure(req: dict) -> dict[str, float]:
     # |phase imbalance| and diff->CM conversion of the MSB path up to the
     # symbol rate (48 GBd) — a layout asymmetry (per-net bus extents, one
     # output on another metal) is scored here, not hidden in the differential S21.
-    rb = dl.run_ac_balance(DUT, drive="msb", dp=dp, dut_ref=ref, timeout_s=900,
-                           pts_per_dec=AC_PTS_PER_DEC)
-    if not rb["ok"]:
-        raise RuntimeError(f"balance failed: {rb.get('log', '')[-1500:]}")
-    fb = rb["f_ghz"]
-    inb = fb <= BAL_BAND_GHZ
-    m["pn_gain_imb_db"] = float(np.abs(rb["gain_imb_db"][inb]).max())
-    m["pn_phase_imb_deg"] = float(np.abs(rb["phase_imb_deg"][inb]).max())
-    m["cm_leak_dbc"] = _band_max(fb, rb["cm_leak_dbc"], BAL_BAND_GHZ)
+    # r3: the MSB-path numbers stay the SCORED ones (`pn_*` / `cm_leak_dbc`);
+    # the LSB path is measured too and reported unscored (`*_lsb`) so a round
+    # that buys MSB balance by giving back LSB balance is visible in R.
+    for drv in (("msb", "lsb") if DUT == "pam4" else ("in",)):
+        rb = dl.run_ac_balance(DUT, drive=drv, dp=dp, dut_ref=ref,
+                               timeout_s=900, pts_per_dec=AC_PTS_PER_DEC)
+        if not rb["ok"]:
+            raise RuntimeError(f"balance {drv} failed: {rb.get('log', '')[-1500:]}")
+        fb = rb["f_ghz"]
+        inb = fb <= BAL_BAND_GHZ
+        sfx = "" if drv in ("msb", "in") else f"_{drv}"
+        m[f"pn_gain_imb_db{sfx}"] = float(np.abs(rb["gain_imb_db"][inb]).max())
+        m[f"pn_phase_imb_deg{sfx}"] = float(np.abs(rb["phase_imb_deg"][inb]).max())
+        m[f"cm_leak_dbc{sfx}"] = _band_max(fb, rb["cm_leak_dbc"], BAL_BAND_GHZ)
     d = dl.run_dc(DUT, drive="both", vd_max_mv=900.0, step_mv=15.0, dp=dp,
                   dut_ref=ref, timeout_s=900)
     if not d["ok"]:

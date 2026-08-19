@@ -11,17 +11,22 @@ reads the record `R`, gets a layout review, and **fixes `G`** — every such fix
 is a commit of `gen_layout.py` and a row of the rounds table below.
 
 ```
-flow.yaml            layout-flow/1: generator, cell, DRC/LVS/PEX stages, measure hook (this dir)
+flow.yaml            layout-flow/1: generator, cell, DRC/LVS/PEX stages, measure hook (this dir; kpex CC, halo 20 = the SEARCH instrument)
+flow_halo8.yaml      same flow at the block's report halo (8 um, the SG13G2 tech default)
+flow_rc.yaml         same flow in RC mode (wiring R kept) — the report cross-check
+remeasure.py         re-measure ONE trial of a round through another flow: remeasure.py runs/r3_s23/.../run_30_layout --tag v4h8
 project_setup.yaml   sim_engine: layout; theta_E ∪ theta_L ∪ theta_S knobs, the 8 specs + gates (current round)
 measure_post.py      the hook: kpex netlist -> convert -> driver_lib AC/S22/DC/bias benches -> scalars
 run_round.sh         ./run_round.sh <round> <seed> <budget> [algo] [project.yaml]  (one island per process)
-harvest.py           runs/<round>_s* -> results/<round>/{trials.jsonl, summary.json, best.gds, best.png, best_post.spice}
+harvest.py           runs/<round>_s* -> results/<round>/{trials.jsonl, summary.json, best.*, accepted.*}
+                     (--accept ISLAND/RUN records the ACCEPTED trial next to the argmax-J one; they differ in r3)
 figures.py           annotated parameterized layout, before/after, per-round strip (drawn from the GDS)
 peek.py              one line per trial while a round runs
 rounds/              the project_setup.yaml of every past round (r1_..., r2_s3_... = multi-start island)
 results/<round>/     the committed record R of each round (trials.jsonl, summary.json, best.gds/.png/_post.spice)
 results/baseline_r2_instrument.json   the layout of record measured with the r2 instrument (the honest baseline)
-*.png, *.pdf         pam4_layout_annotated / before_after / rounds (figures.py writes the PNG + a true-vector PDF twin)
+*.png, *.pdf         pam4_layout_annotated / before_after (r3 pair) / before_after_r2 / rounds
+                     (figures.py writes the PNG + a true-vector PDF twin)
 runs/, logs/         per-trial artefacts + island logs (git-ignored; ~2 MB / trial)
 ```
 
@@ -29,15 +34,21 @@ runs/, logs/         per-trial artefacts + island logs (git-ignored; ~2 MB / tri
 
 ```sh
 # from the block repo (uv env + local.mk with PDK_ROOT / KPEX / KPEX_KLAYOUT_EXE):
-make codesign ROUND=r3 SEED=0 BUDGET=40 ALGO=OnePlusOne     # = the run_round.sh line below with the env injected
+make codesign ROUND=r4 SEED=0 BUDGET=40 ALGO=OnePlusOne     # = the run_round.sh line below with the env injected
 cd layout/codesign
-./run_round.sh r3 0 40 OnePlusOne &        # island 0
-./run_round.sh r3 1 40 OnePlusOne &        # island 1 (different seed)
-./run_round.sh r3 2 40 TwoPointsDE &       # island 2 (different algorithm)
-uv run --project ../../../../spicexplorer-platform python harvest.py --round r3 runs/r3_s0 runs/r3_s1 runs/r3_s2 \
-    --instrument "band-edge S-params, kpex CC halo 20"
-python3 peek.py runs/r3_s0                 # while it runs
+./run_round.sh r4 0 40 OnePlusOne &                                  # island 0 (from the record)
+./run_round.sh r4 1 40 TwoPointsDE &                                 # island 1 (different algorithm)
+./run_round.sh r4 2 40 OnePlusOne rounds/r4_s2_project_setup.yaml &   # island 2 (different init / hinges)
+uv run --project ../../../../spicexplorer-platform python harvest.py --round r4 runs/r4_s* \
+    --accept r4_s2/run_17_layout --instrument "band-edge S-params, kpex CC halo 20"
+python3 peek.py --top 10 runs/r4_s*         # while it runs (per-trial lines + leaderboard)
+python3 remeasure.py runs/r4_s2/layout/layout/run_17_layout --tag cand   # the candidate at the report halo
 ```
+
+Every island is a *copy* of `project_setup.yaml` in `rounds/` differing only in
+`init` (and, for the acceptance islands, in the s11/s22 hinges) — round 3 used
+14 of them; r2's lesson is that structural INT knobs have to be **seeded on**
+in their own island or the search never flips them.
 
 The platform's `spicexplorer-optimize` trial loop is sequential, so wall-clock
 comes from islands (separate processes / seeds). ~75 s per trial on the research
@@ -88,6 +99,7 @@ baseline scorecard (parity), or the round is not started.
 | — | layout of record (`FINAL_LAYOUT`, v2 signoff 2026-08-09) | — | — | S11 −9.94 / S22 −9.24 / gain 2.27 / 8.25 / BW 58.8 / swing 2.21 / 179 mW / 7552 µm² (band edges, halo 8) | the honest baseline; **fails S11 and S22** |
 | r1 | generator as-is; θ_E ∪ θ_L, 26 knobs; guards added mid-round after the first DRC skips | 3 × 40 | 64 / 6 (r1 instrument; 0 honest) / 56 | −10.04 / −10.76 (r1: dec-20 grid max, halo 8 — 0.55 dB of that is the halo cliff) | **fix G**: DRC guards + snapped vias + TopVia1 table; fix the instrument; add structural knobs |
 | r2 | + `c_strip`, `bus_trim`, `out_split`, `sub_bus`, `cell_order`; bounds re_ohm ≥ 2.8, cdeg ≥ 12, rc_sep ≤ 8, out_gap ≤ 20, stack_w ≥ 1.1; band-edge metrics + halo 20; islands s0/s1 OnePlusOne + s2 TwoPointsDE from the layout of record, s3 OnePlusOne from the review point (all five structural options on) | 4 × 40 | 150 / 15 / 10 (3 build, 7 DRC) — **all 15 feasible points are island s3**; s0–s2 (120 trials from the record) found none | −10.07 / −10.79 / gain 2.23 / 8.20 / BW 61.2 / swing 2.26 / 190.2 mW / 6880 µm² (band edges, halo 20; s3 `run_38`) | **accept** `run_38` as v3 (`gen_layout.FINAL_LAYOUT`); the record's `FINAL_LAYOUT` is kept as `V2_LAYOUT` |
+| r3 | balance made an **objective** (owner brief: better p/n balance first, then reflection, then power, then area): the hook measures the MSB *and* LSB path (`pn_*`, `cm_leak_dbc`, `*_lsb`), `J` rewards them (30/dB, 2/deg, 0.5/dB) plus power (0.15/mW) on top of a steeper S11 reward (5/dB); + 2 structural knobs from the r2 matching audit — `out_split` 2/3 (both buses on TM2 / mirrored) and `in_order` (p/n-swapped input rows) — + the continuous knob `rc_gap` (outn bus ↔ RC body **and** the TM2 vcc rail; the r2 extraction reads outn↔vcc 2.33 fF vs outp's 0.25 fF). 14 islands: s10–s15 from v3, s16/s17 with the new structural options on, s18/s19 with reflection-preserving hinges, s20–s23 with the **acceptance rule itself** as the hinge (S11 ≤ −10.065, S22 ≤ −10.785 = v3) | 14 × 30–40 = 520 | 488 / 141 / 32 (28 DRC, 4 generator refusals = 6.2 %) | −10.073 / −10.812 / bal 0.035 dB / 0.64° / −44.5 dBc / gain 2.27 / 8.24 / BW 61.4 / swing 2.24 / 185.0 mW / 7055 µm² (band edges, halo 20; s23 `run_30`) | **accept** `run_30` as v4 (`gen_layout.FINAL_LAYOUT`); v3 kept as `V3_LAYOUT` |
 
 Round-2 reading: the structural options are what carry the design across the
 line — the three islands that started from the layout of record with the
@@ -102,64 +114,132 @@ review point itself (`run_1`: −10.19 / −10.40 dB, 179 mW, 7372 µm²) is the
 balanced alternative if power matters more than S22 margin — both are on the
 committed record.
 
+Round-3 reading — **the structural hypothesis was wrong and the measurement
+said so.** The r2 matching audit blamed the asymmetric `out_split` (outn on
+TopMetal2, outp on TopMetal1) for the balance loss, so round 3 added the
+symmetric variants as knobs. At the v3 electrical point, one knob at a time
+(halo 20 CC, all DRC/LVS clean, `runs/r3_s1*/**/run_1_layout`):
+
+| out_split | S11 | S22 | \|gain\| imb | phase | diff→CM | area |
+|---|---|---|---|---|---|---|
+| 0 both TM1 (symmetric) | −10.070 | −10.628 | 0.0483 | 0.99° | −40.8 dBc | 6880 |
+| **1 outn on TM2 (v3)** | −10.070 | −10.790 | 0.0431 | 0.88° | −41.9 dBc | 6880 |
+| 2 both TM2 (symmetric) | −10.069 | −10.590 | 0.0502 | 1.00° | −40.7 dBc | 6880 |
+| 3 outp on TM2 (mirrored) | −10.069 | −10.812 | 0.0449 | 0.85° | −42.0 dBc | 6880 |
+| 1 + `in_order` 1 (p/n rows swapped) | −10.077 | −10.790 | 0.0415 | 0.95° | −41.3 dBc | 6880 |
+
+Both *symmetric* metal options read **worse** than the asymmetric ones, and the
+input-row swap is neutral-to-worse: metal symmetry is not the balance lever,
+so the accepted point keeps v3's structure (`out_split` 1, `in_order` 0). Both
+are recorded as measured nulls, not as improvements. What *did* move the
+balance is the per-net C asymmetry the extraction points at — `rc_gap`
+(+0.5 µm at the winner) and the continuous spacing/width knobs — and the
+electrical point: at the accepted point the output-net asymmetry
+`ctot_outn − ctot_outp` falls 2.01 → 1.46 fF and outn↔vcc 2.33 → 1.97 fF,
+which is exactly where the 0.043 → 0.035 dB / 0.88 → 0.64° / −41.9 → −44.5 dBc
+came from (`results/r3/trials.jsonl` carries the per-net C of every trial).
+
+**The ceiling of this round, and the experiment that shows it.** Every large
+balance gain in the 520 trials was paid for in S22: the leaders of the
+open-hinge islands (`r3_s12 run_26`: 0.027 dB / 0.46° / −47.4 dBc, 167 mW) sit
+0.4–0.5 dB above v3's S22. To test whether the balance win survives without
+selling reflection, islands s20–s23 were run with the **acceptance rule as the
+feasibility hinge** (S11 ≤ −10.065, S22 ≤ −10.785 dB — v3's own numbers): of
+520 trials only **6** hold every spec *and* both reflections at the v3 level,
+and 5 of those 6 are the trial-1 structural A/Bs. The sixth is the accepted
+point, found by the island seeded at the round's best-balance trial with the
+acceptance hinges (`r3_s23`, `run_30`) — i.e. the improvement is real but the
+two objectives are coupled through the output-net capacitance, and ~20 % of the
+balance is the most the search can buy at constant reflection in this box.
+For the record the alternatives are on `results/r3/trials.jsonl` too:
+*balance-only* `r3_s23 run_11` (0.0312 dB / 0.57° / −45.5 dBc, 176.6 mW, but
+S22 −10.715) and *reflection-only* `r3_s21 run_1` (S11 −10.076 / S22 −10.812
+at v3's balance, 6880 µm²).
+
+**Instrument note (why the round is quoted at halo 20).** The candidates were
+re-measured at the block's report halo (8 µm) as well: the S22 halo-8 − halo-20
+delta is **geometry-dependent and changes sign** (v3 −0.070, accepted +0.098,
+`r3_s17 run_26` +0.085 dB). The per-net C explains it: at `rc_gap` ≈ 5 µm the
+outn↔vcc pair sits outside the 8 µm sidewall halo and kpex simply drops
+0.5–0.85 fF of real coupling, so halo 8 flatters exactly the geometries the
+gap knobs open. The round is therefore accepted on the **halo-20** numbers
+(the more complete extraction, and the search instrument since r2); the halo-8
+column of the scorecard below is the report instrument, not the acceptance
+criterion.
+
 ## Final scorecard
 
-Accepted point = `gen_layout.FINAL_LAYOUT` (v3, r2_s3 `run_38`) re-signed
-from `layout/`: `gen_layout.py` → DRC/LVS PASS (lsb / msb / pam4) →
-`pex_sim.py` (block default, kpex CC halo 8) and `measure_post.measure` at
-halo 20 in CC and RC mode (`../out/pex/metrics_v3_*.json`).
+Accepted point = `gen_layout.FINAL_LAYOUT` (**v4**, r3_s23 `run_30`) re-signed
+from `layout/`: `gen_layout.py --dut all` → **DRC + LVS PASS on lsb / msb /
+pam4** → `pex_sim.py --dut all` (block default, kpex CC halo 8, pre-vs-post
+report `../out/pex_report.yaml`) and `measure_post.measure` through the flow at
+halo 20 CC, halo 20 RC and halo 8 CC (`codesign/remeasure.py`, records in
+`../out/pex/metrics_v4_*.json`; the v3 column is `metrics_v3_*.json` +
+`metrics_v3_cc_halo8_balance.json`). Biases = `FINAL_BIASES`
+(tail 15.4977 mA / vcasc 3.2151 V, 4 V supply).
 
-| metric | spec | paper meas. | layout of record (v2) | v3 accepted, halo 8 CC (block default) | v3, halo 20 CC | v3, halo 20 RC |
-|---|---|---|---|---|---|---|
-| S11 @32 GHz (dB) / −10 dB edge (GHz) | ≤ −10 / ≥ 32 | < −10 / 32 | −9.94 / 31.7 (halo 20: −9.98) | **−10.05 / 32.2** | −10.07 / 32.3 | −10.07 / 32.3 |
-| S22 @50 GHz (dB) / −10 dB edge (GHz) | ≤ −10 / ≥ 50 | < −10 / 50 | −9.24 / 45.5 (halo 20: −9.36) | **−10.72 / 54.7** | −10.78 / 55.2 | −10.78 / 55.2 |
-| gain LSB / MSB (dB) | ≥ 2.2 / ≥ 8.2 | 3.2 / 9.2 | 2.27 / 8.25 | 2.23 / 8.21 | 2.23 / 8.21 | 2.23 / 8.21 |
-| DAC weight (dB) | ≥ 5 | 6.0 | 5.98 | 5.97 | 5.97 | 5.97 |
-| BW MSB / LSB (GHz) | ≥ 50 | 51 / >67 | 58.8 / 78.9 | 61.1 / 82.4 | 61.2 / 82.7 | 61.2 / 82.7 |
-| swing (Vpp diff) | ≥ 2.1 | 2.1 | 2.21 | 2.26 | 2.26 | 2.26 |
-| power @4 V (mW) | ≤ 192 | 192 | 179.1 | 190.2 | 190.2 | 190.2 |
-| core area (µm²) | — | 11 300 | 7552 | **6880** (−9 % vs record, −39 % vs paper) | | |
-| tail / vcasc | | | 15.0 mA / 3.35 V | 15.93 mA / 3.31 V | | |
+| metric | spec | layout of record (v2) | v3 (r2 accepted), halo 20 CC | **v4 (r3 accepted), halo 20 CC** | v4, halo 20 RC | v3, halo 8 CC | **v4, halo 8 CC** |
+|---|---|---|---|---|---|---|---|
+| S11 @32 GHz (dB) / −10 dB edge (GHz) | ≤ −10 / ≥ 32 | −9.94 / 31.7 | −10.070 / 32.30 | **−10.073 / 32.32** | −10.073 / 32.32 | −10.047 / 32.21 | −10.034 / 32.15 |
+| S22 @50 GHz (dB) / −10 dB edge (GHz) | ≤ −10 / ≥ 50 | −9.24 / 45.5 | −10.790 / 55.16 | **−10.812 / 55.30** | −10.812 / 55.30 | −10.720 / 54.73 | −10.715 / 54.64 |
+| \|gain\| imbalance p/n ≤ 48 GHz (dB) | — (r3 objective) | 0.03 | 0.0431 | **0.0346** | 0.0346 | 0.0527 | 0.0470 |
+| phase imbalance p/n ≤ 48 GHz (°) | — (r3 objective) | 0.5 | 0.876 | **0.643** | 0.643 | 1.179 | 0.993 |
+| diff→CM conversion ≤ 48 GHz (dBc) | — (r3 objective) | −46.5 | −41.87 | **−44.48** | −44.48 | −39.37 | −40.82 |
+| gain LSB / MSB (dB) | ≥ 2.2 / ≥ 8.2 | 2.27 / 8.25 | 2.232 / 8.205 | **2.269 / 8.244** | 2.269 / 8.244 | 2.232 / 8.205 | 2.269 / 8.244 |
+| DAC weight (dB) | ≥ 5 | 5.98 | 5.972 | **5.975** | 5.975 | 5.972 | 5.975 |
+| BW MSB / LSB (GHz) | ≥ 50 | 58.8 / 78.9 | 61.2 / 82.7 | **61.4 / 83.0** | 61.4 / 83.0 | 61.0 / 82.4 | 61.1 / 82.5 |
+| swing (Vpp diff) | ≥ 2.1 | 2.21 | 2.258 | **2.237** | 2.237 | 2.258 | 2.237 |
+| power @4 V (mW) | ≤ 192 | 179.1 | 190.19 | **185.05** | 185.05 | 190.19 | 185.05 |
+| I_C per finger (mA) | < 3 | — | 2.655 | **2.583** | 2.583 | 2.655 | 2.583 |
+| core area (µm²) | — | 7552 | 6880 | **7055** (+2.5 % vs v3, −38 % vs the paper's 11 300) | | | |
+| tail / vcasc | | 15.0 mA / 3.35 V | 15.93 mA / 3.31 V | **15.4977 mA / 3.2151 V** | | | |
 
-All eight specs met by every instrument; the two reflection specs are met with
-0.05 / 0.7 dB of margin where the layout of record failed both by 0.06 / 0.76
-dB. RC extraction (1861 wiring R, median 29 mΩ, max 12.6 Ω) reproduces the CC
-scorecard to the last digit — the reviews' "≈ −0.5 dB MSB gain from riser R"
-worry is refuted by measurement (the risers are 3-via TopMetal1 stacks; the
-resistive path is milliohms). Both reflection margins are small (S11 is
-device-limited, see below); the honest statement is *the co-designed layout
-meets the specs the layout of record missed, at 91 % of its area and 61 % of
-the paper's, for +11 mW*.
+All eight signoff specs are met at every instrument. Against v3 the accepted
+point is better on **both reflections, all three balance metrics, power, both
+gains, weight and bandwidth** at the search instrument (halo 20 CC), for
++175 µm² (+2.5 %) of area and −0.021 Vpp of swing (2.237 against a 2.1 spec).
+At the halo-8 report instrument the balance gain holds (0.053 → 0.047 dB,
+1.18 → 0.99°, −39.4 → −40.8 dBc) and the two reflections land within 12 mdB
+(S11) and 5 mdB (S22) of v3 — i.e. inside the halo-to-halo spread of the
+instrument itself (25–98 mdB, measured above), and both still ~0.03 / 0.71 dB
+inside spec. RC extraction at halo 20 (1382 wiring R next to 176 C)
+reproduces the CC scorecard to four decimals, as it did for v3.
 
 ## Matching audit — is the accepted layout too asymmetric?
 
-The structural options make the accepted point visibly asymmetric: `bus_trim`
-gives each output bus its own extents (outp spans M0…M1, outn spans M1…L0 —
-each cell's p riser and n riser sit 20 µm apart, so per-net trimming shifts
-the two buses by one cell), and `out_split` puts outn on TopMetal2 while outp
-stays on TopMetal1. Measured on the extracted netlists (kpex CC, block default;
-`driver_lib.run_ac_balance`, MSB path, `pn_*` / `cm_leak_dbc` scalars of the
-hook):
+The structural options make the layout visibly asymmetric: `bus_trim` gives
+each output bus its own extents, and `out_split` puts outn on TopMetal2 while
+outp stays on TopMetal1. Round 3 made this a **scored objective** (the hook
+measures the MSB *and* the LSB path; `pn_gain_imb_db`, `pn_phase_imb_deg`,
+`cm_leak_dbc` and their `*_lsb` twins) and the search bought most of the r2
+regression back. Measured on the extracted netlists (kpex CC, `driver_lib.run_ac_balance`):
 
-| | outp / outn wiring C to ground (fF) | \|gain\| imbalance ≤ 48 GHz | phase imbalance ≤ 48 GHz | diff→CM conversion @48 GHz | single-ended S22 outp / outn @50 GHz |
+| | out-net wiring C outp / outn (fF, halo 20) | \|gain\| imb ≤ 48 GHz | phase imb ≤ 48 GHz | diff→CM ≤ 48 GHz | LSB path (same three) |
 |---|---|---|---|---|---|
-| layout of record (v2) | 16.4 / 17.8 (+9 %) | 0.03 dB | 0.5° | −46.5 dBc | −9.85 / −9.61 dB |
-| **v3 accepted** | 11.9 / 15.0 (+27 %) | 0.05 dB | 1.2° | −39.5 dBc | −11.32 / −10.70 dB |
+| layout of record (v2), halo 8 | 16.4 / 17.8 (+9 %) | 0.03 dB | 0.5° | −46.5 dBc | — |
+| v3 (r2 accepted), halo 8 | 11.9 / 15.0 (+27 %) | 0.0527 dB | 1.18° | −39.4 dBc | 0.0513 / 1.22° / −39.1 |
+| v3, halo 20 | 15.25 / 17.26 (+13 %) | 0.0431 dB | 0.88° | −41.9 dBc | 0.0412 / 0.94° / −41.4 |
+| **v4 (r3 accepted), halo 8** | | **0.0470 dB** | **0.99°** | **−40.8 dBc** | 0.0436 / 1.06° / −40.3 |
+| **v4, halo 20** | 15.14 / 16.60 (+9.6 %) | **0.0346 dB** | **0.643°** | **−44.5 dBc** | 0.0306 / 0.73° / −43.6 |
 
-So the asymmetry is real and doubled — but at the level of 0.05 dB / 1.2° /
-−40 dBc it is far below anything that shows in the eye (RLM 0.995 for both
-in `../../report/`, eye openings 0.23 V in both) or in the differential
-S-parameters, and both single-ended output reflections improved. The full
-balance sweeps of all four tiers (schematic, first-pass, v2, v3) are
-`report/figs/fig_balance.png` / `report/data/balance_<tier>.csv`. The extra outn capacitance is the TopVia2 pads and TM2 stack of the
-`out_split` risers, not the bus itself. It is now **scored**: the hook reports
-`pn_gain_imb_db`, `pn_phase_imb_deg`, `cm_leak_dbc`, and `project_setup.yaml`
-carries them as bounds (≤ 0.1 dB / ≤ 2° / ≤ −35 dBc) for round 3 — the r1/r2
-record was measured without them (they were added after the r2 review of the
-accepted layout). Round-3 knob candidates that remove the mechanism rather
-than bound it: a *mirrored* `out_split` (alternate which net takes TM2 per
-half) or both buses on TopMetal2 with the gap re-optimized; `bus_trim`
-symmetric variant (trim both buses to the union of risers).
+The mechanism is in the per-net budget, not in the metal choice: the
+outn↔vcc coupling (outn's TM2 bus runs alongside the TM2 vcc rail) is
+**2.34 fF against outp's 0.26 fF** at v3, and the accepted point takes it to
+1.97 fF, which with the other spacing moves brings the total output-net
+asymmetry from 2.01 fF to 1.46 fF. The three symmetric metal variants
+(`out_split` 0/2/3) and the p/n-swapped input rows (`in_order` 1) were tried
+as knobs and measured **neutral-to-worse** (table above) — the balance came
+from the C budget and the electrical point.
+
+**What is left (round-4 material).** The residual asymmetry is now (a) the
+1.46 fF the output nets still differ by — outn carries the TopVia2 pads and
+TM2 stack of the `out_split` riser — and (b) the **input** side, which nothing
+in this round touched and which got marginally worse: `ctot_msbp` 8.91 → 9.21 fF
+against `ctot_msbn` 8.33 → 8.49 fF (0.58 → 0.72 fF of asymmetry). A generator
+option that mirrors the riser/pad stack per net (rather than the bus metal) and
+one that equalises the msbp/msbn bus extents are the two knobs a round 4 would
+add; `in_order` (which only reorders whole rows) is already measured and is not
+that knob.
 
 ## Ceiling (why the search stops where it stops)
 
@@ -173,6 +253,15 @@ symmetric variant (trim both buses to the union of risers).
 * **S11** — device-limited: zeroing all 10.6 fF of MSB input wiring reaches
   −11.4 dB; C_in ≈ τ_F/R_E + C_je/(1+g_mR_E) + C_bc is current-independent, so
   the electrical levers (R_E, R_B, tail) trade the 0.05 dB MSB-gain margin.
+* **p/n balance vs reflection (round 3)** — the two are coupled through the
+  output-net capacitance: of 520 trials only 6 hold every spec *and* both
+  reflections at the v3 level (5 of them are the trial-1 structural A/Bs), and
+  the four islands whose feasibility hinge *was* the acceptance rule produced
+  exactly one improvement. Balance below ~0.031 dB / 0.57° / −45.5 dBc is
+  reachable (`r3_s23 run_11`, `r3_s12 run_26` at 0.027 dB / −47.4 dBc) but
+  costs 0.1–0.5 dB of S22 margin every time. The residual asymmetry is
+  1.46 fF on the output nets and 0.72 fF on the input nets (matching audit
+  above) — a per-net riser/pad mirror knob is what a round 4 would need.
 * Unscored, open for tapeout (from the reviews): EM on the single TopVia1 per
   riser (7.5 mA) and the RC stacks (22.5 mA), rsil J_max of the 50 Ω loads,
   vcasc-rail odd-mode stability (bypass + per-cell series R), the 2-row
@@ -202,20 +291,29 @@ symmetric variant (trim both buses to the union of risers).
   `fig_layout_b_vs_d`, and `fig_layout_annotated` (the same `annotate_knobs`
   overlay, dark palette, on the KLayout image — `report/build_report.py`); the
   matplotlib vector drawings here remain as the from-GDS cross-check.
-* `before_after.png` — layout of record | accepted point, same scale, changed
-  regions boxed and moved knobs listed.
-* `rounds.png` — layout of record | r1 best | r2 accepted strip with scorecards.
+* `before_after.png` — v3 | v4 (the round-3 pair), same scale, changed regions
+  boxed and every moved knob listed; `before_after_r2.png` is the round-2 pair
+  (layout of record v2 | v3).
+* `rounds.png` — layout of record | r1 best | r2 accepted (v3) | r3 accepted (v4)
+  strip with scorecards.
 
 Regenerate (needs `PDK_ROOT`, the block's uv env; ~10 s per panel):
 
 ```sh
-uv run python figures.py annotated --params results/r2/summary.json --out pam4_layout_annotated.png
-uv run python figures.py before-after --before results/baseline_r2_instrument.json --before-metrics results/baseline_r2_instrument.json \
-    --after results/r2/summary.json --after-metrics results/r2/summary.json --out before_after.png
-uv run python figures.py rounds --panel "layout of record (r2 instrument)=results/baseline_r2_instrument.json=results/baseline_r2_instrument.json" \
+uv run python figures.py annotated --params results/r3/summary.json --out pam4_layout_annotated.png
+uv run python figures.py before-after --before results/r2/summary.json --before-metrics results/r2/summary.json \
+    --after results/r3/summary.json --after-metrics results/r3/summary.json \
+    --labels "before: v3 (round-2 accepted)" "after: v4 (round-3 accepted)" --out before_after.png
+uv run python figures.py rounds --panel "layout of record v2 (r2 instrument)=results/baseline_r2_instrument.json=results/baseline_r2_instrument.json" \
     --panel "r1 best (run_22; r1 instrument, halo 8)=results/r1/summary.json" \
-    --panel "r2 accepted (island s3, run_38)=results/r2/summary.json" --out rounds.png
+    --panel "r2 accepted v3 (s3 run_38)=results/r2/summary.json" \
+    --panel "r3 accepted v4 (s23 run_30)=results/r3/summary.json" --out rounds.png
 ```
+
+`figures.py` reads the **accepted** trial of a harvest `summary.json` when one
+is recorded (`harvest.py --accept`), not the argmax-J trial — in round 3 they
+are different points on purpose (`best` = `r3_s12 run_26`, which buys balance
+by selling 0.5 dB of S22; `accepted` = `r3_s23 run_30`).
 
 `results/baseline_r2_instrument.json` = the layout of record (`gen_layout.V2_LAYOUT`,
 tail 15 mA / vcasc 3.35 V) measured with the round-2 instrument = r2_s0 trial 1.
