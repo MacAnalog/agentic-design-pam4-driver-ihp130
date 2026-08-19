@@ -97,7 +97,7 @@ platform needs is in **[`layout/codesign/`](layout/codesign/)** — three files:
 | file | role in Alg. 1 |
 |---|---|
 | [`flow.yaml`](layout/codesign/flow.yaml) | `layout-flow/1`: *what one trial is* — `generator: ../gen_layout.py`, `cell`, KLayout DRC + LVS (per-trial reference from the generator), kpex 2.5D (`mode: CC`, MIM stripped, `halo_um: 20`), and the `measure:` hook; `gates: {drc, lvs, pex}` = the skip rule |
-| [`project_setup.yaml`](layout/codesign/project_setup.yaml) | `sim_engine: layout`: *the search* — `dut_params` = θ_E ∪ θ_L ∪ θ_S with `init` = the layout of record (`seed_from_init`), `target_specs` = the eight signoff specs as feasibility bounds + S11/S22/area margins as the reward (`feasibility_reward` J), `ic_ma_per_finger` validity, DRC/LVS/PEX gates as `exact 1` specs |
+| [`project_setup.yaml`](layout/codesign/project_setup.yaml) | `sim_engine: layout`: *the search* — `dut_params` = θ_E ∪ θ_L ∪ θ_S with `init` = the layout of record (`seed_from_init`), `target_specs` = the eight signoff specs as feasibility bounds + S11/S22/p-n-balance/power/area margins as the reward (`feasibility_reward` J), `ic_ma_per_finger` validity, DRC/LVS/PEX gates as `exact 1` specs |
 | [`measure_post.py`](layout/codesign/measure_post.py) | the hook `measure(req) -> scalars`: kpex netlist → `pex_sim.convert_pex_netlist` (MIM re-inserted) → `wrap_layout_dut` → the block's own `driver_lib` benches (`run_ac`, `run_ac_s22`, `run_dc`, bias) with the trial's sizing + `deck_params` (tail, V_casc) → `s11, s22, msb_gain, lsb_gain, weight, bw, swing, power, ic_ma_per_finger` |
 
 ```yaml

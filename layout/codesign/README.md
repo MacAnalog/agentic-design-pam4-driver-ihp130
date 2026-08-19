@@ -176,7 +176,11 @@ report `../out/pex_report.yaml`) and `measure_post.measure` through the flow at
 halo 20 CC, halo 20 RC and halo 8 CC (`codesign/remeasure.py`, records in
 `../out/pex/metrics_v4_*.json`; the v3 column is `metrics_v3_*.json` +
 `metrics_v3_cc_halo8_balance.json`). Biases = `FINAL_BIASES`
-(tail 15.4977 mA / vcasc 3.2151 V, 4 V supply).
+(tail 15.4977 mA / vcasc 3.2151 V, 4 V supply). The freeze is exact — the GDS
+rebuilt from `FINAL_LAYOUT` is byte-identical to the accepted trial's
+(`md5 b6a3ede8b1ab2af46b8089d1fdb18036` for `layout/out/dut_pam4.gds`,
+`runs/r3_s23/.../run_30_layout/pam4drv_pam4_lay.gds` and
+`results/r3/accepted.gds`).
 
 | metric | spec | layout of record (v2) | v3 (r2 accepted), halo 20 CC | **v4 (r3 accepted), halo 20 CC** | v4, halo 20 RC | v3, halo 8 CC | **v4, halo 8 CC** |
 |---|---|---|---|---|---|---|---|
