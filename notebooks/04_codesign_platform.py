@@ -130,10 +130,11 @@ for f in ("pam4_layout_annotated.png", "before_after.png", "rounds.png"):
         display(Image(pth, width=1000))
 
 # %% [markdown]
-# ## 5. v2 → v3 through the block's own benches (independent of the co-design hook)
+# ## 5. v2 → v4 through the block's own benches (independent of the co-design hook)
 #
 # The committed post-layout netlists (`layout/out/pex/dut_pam4_best_post.spice`
-# = v2, `layout/out/pex/dut_pam4_post.spice` = v3, both kpex CC at the block's
+# = v2, `layout/out/pex/dut_pam4_post.spice` = v4 = the layout of record after
+# co-design round 3; the round-2 point v3 is tier (d) of `report/layout/`), both kpex CC at the block's
 # default halo) run through `driver_lib`'s S-parameter and eye benches exactly as
 # notebook 03 does — the sweeps below use `dec 100` so the 32 / 50 GHz band edges
 # are on the grid (dotted lines). This is the check that the co-design hook's
@@ -149,11 +150,11 @@ def dp_of(bias, re_ohm, cdeg_ff, rc_ohm, rb_ohm):
     return DriverParams(cell=CellParams(nx=3, tail_ma=bias["tail_ma"], re_ohm=re_ohm, cdeg_ff=cdeg_ff,
                                         rc_ohm=rc_ohm, rb_ohm=rb_ohm, vcasc=bias["vcasc"], vcm_in=bias["vcmb"]))
 
-V2 = gen_layout.V2_LAYOUT; V3 = gen_layout.FINAL_LAYOUT
+V2 = gen_layout.V2_LAYOUT; V4 = gen_layout.FINAL_LAYOUT
 VARIANTS = {
     "v2 (layout of record)": (dp_of(gen_layout.V2_BIASES, V2["re_ohm"], V2["cdeg_ff"], V2["rc_ohm"], V2["rb_ohm"]),
                               wrap_layout_dut("pam4", os.path.join(ROOT, "layout/out/pex/dut_pam4_best_post.spice")), "tab:gray"),
-    "v3 (co-design accepted)": (dp_of(gen_layout.FINAL_BIASES, V3["re_ohm"], V3["cdeg_ff"], V3["rc_ohm"], V3["rb_ohm"]),
+    "v4 (co-design accepted)": (dp_of(gen_layout.FINAL_BIASES, V4["re_ohm"], V4["cdeg_ff"], V4["rc_ohm"], V4["rb_ohm"]),
                                 wrap_layout_dut("pam4", os.path.join(ROOT, "layout/out/pex/dut_pam4_post.spice")), "tab:red"),
 }
 
@@ -195,7 +196,7 @@ axes[2].set_xlim(1, 100); axes[2].set_ylim(-25, -5)
 for ax in axes:
     ax.set_xlabel("f [GHz]"); ax.legend(fontsize=7); ax.grid(alpha=0.3)
 fig.tight_layout()
-fig.savefig(os.path.join(HERE, "report_figs", "sparams_v2_v3_post_layout.png"), dpi=130)
+fig.savefig(os.path.join(HERE, "report_figs", "sparams_v2_v4_post_layout.png"), dpi=130)
 
 pd.DataFrame({lab: {
     "LSB gain [dB]": round(a["lsb"]["lf"], 2), "MSB gain [dB]": round(a["msb"]["lf"], 2),
@@ -205,7 +206,7 @@ pd.DataFrame({lab: {
 } for lab, a in AC.items()}).T
 
 # %% [markdown]
-# ### 48 GBaud PAM-4 eye, v3 post-layout (same stimulus as notebook 03 / `run_eye.py`)
+# ### 48 GBaud PAM-4 eye, v4 post-layout (same stimulus as notebook 03 / `run_eye.py`)
 
 # %%
 BAUD, NSYM = 48e9, 120
@@ -224,7 +225,7 @@ def eye_metrics(t, v, t0_ns, baud):
     return phase, vv, {"vout_pp_v": round(float(vv.max() - vv.min()), 3),
                        "eye_openings_v": [round(e, 3) for e in eyes], "rlm": round(float(3 * amps.min() / amps.sum()), 3)}
 
-lab = "v3 (co-design accepted)"; dp, ref, col = VARIANTS[lab]
+lab = "v4 (co-design accepted)"; dp, ref, col = VARIANTS[lab]
 t, v, t0, baud, log = run_eye(msb_bits=msb_bits, lsb_bits=lsb_bits, dp=dp, dut_ref=ref, baud_hz=BAUD, vswing_mv=200.0, timeout_s=5400)
 assert t is not None, log[-2000:]
 phase, vv, met = eye_metrics(t, v, t0, baud)
@@ -232,7 +233,7 @@ fig, ax = plt.subplots(figsize=(5, 3.8))
 ax.plot(phase * 1e12, vv, ",", color=col, alpha=0.3)
 ax.set_title(f"{lab}: PAM-4 eye @ 48 GBaud (RLM {met['rlm']:.3f})", fontsize=10)
 ax.set_xlabel("t within 2 UI [ps]"); ax.set_ylabel("V_out differential [V]"); ax.grid(alpha=0.3)
-fig.tight_layout(); fig.savefig(os.path.join(HERE, "report_figs", "eye_48gbd_pam4_v3.png"), dpi=130)
+fig.tight_layout(); fig.savefig(os.path.join(HERE, "report_figs", "eye_48gbd_pam4_v4.png"), dpi=130)
 met
 
 # %% [markdown]

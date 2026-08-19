@@ -8,10 +8,12 @@ Tiers (the paper's table columns):
      Metal3 input buses, 1.8 um output-bus gap) with the nominal sizing
   c  layout of record v2 (gen_layout.V2_LAYOUT/V2_BIASES; block-local optimizer +
      RF review, 2026-08-09)
-  d  accepted co-design point v3 (gen_layout.FINAL_LAYOUT/FINAL_BIASES; Alg. 1 of the
+  d  co-design round-2 point v3 (gen_layout.V3_LAYOUT/V3_BIASES; Alg. 1 of the
      paper run through spicexplorer-optimize, round 2 island s3 run_38)
+  e  co-design round-3 point v4 = the layout of record (gen_layout.FINAL_LAYOUT/
+     FINAL_BIASES; round 3 island s23 run_30 — p/n balance made an objective)
 
-For b/c/d: gdsfactory build -> KLayout DRC (--no_density) + LVS -> kpex 2.5D CC
+For b/c/d/e: gdsfactory build -> KLayout DRC (--no_density) + LVS -> kpex 2.5D CC
 (tech default halo 8 um) -> converted post-layout netlist -> the block's own
 driver_lib benches (S21/S11 both paths, S22, DC transfer/swing, bias/power,
 p/n balance, 48 GBd PAM-4 eye). Metrics = layout/codesign/measure_post.measure
@@ -28,7 +30,7 @@ Outputs (all under report/):
   work/            scratch (git-ignored)
 
 Run (uv env, PDK/kpex per local.mk):   make report          (~15 min on the research server)
-Options: --skip-build (reuse work/), --tiers a,b,d, --nsym 200
+Options: --skip-build (reuse work/), --tiers a,b,d,e, --nsym 200
 """
 from __future__ import annotations
 
@@ -85,10 +87,12 @@ TIERS = {
               bias=dict(vcc=4.0, vcasc=NOM.vcasc, vcmb=NOM.vcm_in, tail_ma=NOM.tail_ma), elec=None),
     "c": dict(label="(c) layout of record v2 (block-local optimizer + RF review)", short="(c) v2, block-local optimizer",
               layout=dict(gen_layout.V2_LAYOUT), bias=dict(gen_layout.V2_BIASES), elec=None),
-    "d": dict(label="(d) co-design accepted point v3 (Alg. 1 through SpiceXplorer)", short="(d) v3, co-designed",
+    "d": dict(label="(d) co-design round 2, v3 (Alg. 1 through SpiceXplorer)", short="(d) v3, co-designed",
+              layout=dict(gen_layout.V3_LAYOUT), bias=dict(gen_layout.V3_BIASES), elec=None),
+    "e": dict(label="(e) co-design round 3 accepted point v4 (p/n balance objective)", short="(e) v4, co-designed",
               layout=dict(gen_layout.FINAL_LAYOUT), bias=dict(gen_layout.FINAL_BIASES), elec=None),
 }
-COL = {"a": "#7f7f7f", "b": "#1f77b4", "c": "#ff7f0e", "d": "#d62728"}
+COL = {"a": "#7f7f7f", "b": "#1f77b4", "c": "#ff7f0e", "d": "#d62728", "e": "#2ca02c"}
 SPEC = [("lsb_gain", "gain LSB (dB)", "≥ 2.2"), ("msb_gain", "gain MSB (dB)", "≥ 8.2"),
         ("weight", "DAC weight (dB)", "≥ 5.0"), ("bw_msb", "BW MSB (GHz)", "≥ 50"),
         ("bw_lsb", "BW LSB (GHz)", "≥ 50"), ("s11", "S11 ≤ 32 GHz (dB)", "≤ −10"),
@@ -262,7 +266,7 @@ def eye_metrics(t, v, t0_ns, baud):
 
 # ------------------------------------------------------------------ figures
 def fig_eyes(EYE: dict, out: str) -> dict:
-    tiers = [k for k in "abcd" if k in EYE]
+    tiers = [k for k in "abcde" if k in EYE]
     n = len(tiers)
     fig, axs = plt.subplots(1, n, figsize=(3.6 * n, 3.4), sharey=True, squeeze=False)
     cmap = LinearSegmentedColormap.from_list("eye", ["#ffffff", "#c6dbef", "#4292c6", "#08306b", "#000000"])
@@ -311,7 +315,7 @@ def fig_eyes(EYE: dict, out: str) -> dict:
 
 def fig_sparams(SP: dict, out: str) -> None:
     fig, axs = plt.subplots(1, 3, figsize=(11, 3.3))
-    for k in "abcd":
+    for k in "abcde":
         if k not in SP:
             continue
         s = SP[k]
@@ -337,7 +341,7 @@ def fig_sparams(SP: dict, out: str) -> None:
 
 def fig_dc_balance(SP: dict, out_dc: str, out_bal: str) -> None:
     fig, ax = plt.subplots(figsize=(4.2, 3.2))
-    for k in "abcd":
+    for k in "abcde":
         if k in SP:
             ax.plot(SP[k]["dc"]["vd"], SP[k]["dc"]["vo"], color=COL[k], lw=1.3, label=TIERS[k]["short"])
     ax.axhline(1.05, color="k", lw=0.5, ls=":"); ax.axhline(-1.05, color="k", lw=0.5, ls=":")
@@ -345,7 +349,7 @@ def fig_dc_balance(SP: dict, out_dc: str, out_bal: str) -> None:
     ax.set_title("DC transfer (swing spec ≥ 2.1 V$_{pp}$ = ±1.05 V)"); ax.legend(fontsize=7)
     fig.tight_layout(); fig.savefig(out_dc + ".png", dpi=220); fig.savefig(out_dc + ".pdf"); plt.close(fig)
     fig, axs = plt.subplots(1, 3, figsize=(11, 3.0))
-    for k in "abcd":
+    for k in "abcde":
         if k not in SP:
             continue
         b = SP[k]["bal"]
@@ -387,10 +391,11 @@ def fig_layouts(tiers: list[str], M: dict, out: str, annotate_d: bool = False) -
     plt.close(fig)
 
 
-def fig_layout_annotated(out: str) -> None:
-    """(d) on KLayout's own render, every optimizer knob drawn from the generator's geometry record."""
-    p = gen_layout.LayoutParams(**TIERS["d"]["layout"])
-    work = os.path.join(WORK, "d_annot")
+def fig_layout_annotated(out: str, tier: str = "e") -> None:
+    """The accepted layout on KLayout's own render, every optimizer knob drawn
+    from the generator's geometry record."""
+    p = gen_layout.LayoutParams(**TIERS[tier]["layout"])
+    work = os.path.join(WORK, f"{tier}_annot")
     os.makedirs(work, exist_ok=True)
     cwd0 = os.getcwd(); os.chdir(work)
     try:
@@ -436,7 +441,7 @@ def fmt(v, key):
 
 
 def write_tables(M: dict, out_md: str) -> None:
-    tiers = [k for k in "abcd" if k in M]
+    tiers = [k for k in "abcde" if k in M]
     lines = ["| metric | spec | paper meas. | " + " | ".join(TIERS[k]["short"] for k in tiers) + " |",
              "|---|---|---|" + "---|" * len(tiers)]
     for key, name, spec in SPEC:
@@ -480,7 +485,7 @@ def wiring_c(post: str) -> dict:
 # ------------------------------------------------------------------ main
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--tiers", default="a,b,c,d")
+    ap.add_argument("--tiers", default="a,b,c,d,e")
     ap.add_argument("--skip-build", action="store_true", help="reuse work/<tier>/metrics.json + netlists")
     ap.add_argument("--nsym", type=int, default=200)
     ap.add_argument("--no-eye", action="store_true")
@@ -577,10 +582,11 @@ def main() -> None:
     lay_tiers = [k for k in tiers if TIERS[k]["layout"] is not None]
     if lay_tiers:
         fig_layouts(lay_tiers, M, os.path.join(FIGS, "fig_layouts"))
-        if "b" in lay_tiers and "d" in lay_tiers:
-            fig_layouts(["b", "d"], M, os.path.join(FIGS, "fig_layout_b_vs_d"))
-        if "d" in lay_tiers:
-            fig_layout_annotated(os.path.join(FIGS, "fig_layout_annotated"))
+        last = "e" if "e" in lay_tiers else "d"
+        if "b" in lay_tiers and last in lay_tiers:
+            fig_layouts(["b", last], M, os.path.join(FIGS, "fig_layout_b_vs_d"))
+        if last in lay_tiers:
+            fig_layout_annotated(os.path.join(FIGS, "fig_layout_annotated"), tier=last)
     # tables + data
     for k in tiers:
         M[k]["tier"] = TIERS[k]["label"]

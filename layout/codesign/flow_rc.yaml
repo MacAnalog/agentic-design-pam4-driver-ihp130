@@ -1,0 +1,56 @@
+# layout-flow/1 — PAM-4 driver (IHP SG13G2) layout + sizing co-design.
+#
+# One optimizer trial = gen_layout.build(LayoutParams) -> GDS -> KLayout DRC
+# -> KLayout LVS (per-trial reference from the generator) -> kpex 2.5D CC
+# (MIM stripped, kpex-flavour schematic from the generator) -> measure_post.py
+# (the repo's own driver_lib benches on the extracted netlist -> the eight
+# signoff metrics). Run through project_setup.yaml:
+#
+#     uv run --project ../../../../spicexplorer-platform \
+#         spicexplorer-optimize project_setup.yaml --budget 60
+#
+# (or `make codesign ROUND=r3 SEED=0 BUDGET=40` at the repo root — see codesign/README.md).
+schema: layout-flow/1
+generator: ../gen_layout.py
+cell: pam4drv_pam4_lay
+# gdsfactory + ihp-gdsfactory live in THIS repo's venv (uv sync); the platform's
+# own interpreter runs the DRC/LVS/kpex runners.
+gds_python: ../../.venv/bin/python
+param_grid: 0.01
+env:
+  PDK_ROOT: ~/local/pdks
+  PDK: ihp-sg13g2
+
+# Categorical / mode knobs pinned = design decisions of the RF layout review
+# (v2, 2026-08-09), not tuning: center-fed H-tree input, Metal4 input buses,
+# Metal2 base drops, TopMetal1 output buses. Everything numeric is a knob.
+fixed_params:
+  input_feed: center
+  in_bus_layer: Metal4
+  drop_layer: Metal2
+  out_layer: TopMetal1
+  in_shield: false
+  in_bus_m4: false
+
+drc: {enabled: true, no_density: true, timeout_s: 1800}
+lvs:
+  writer: write_lvs_reference        # 2-terminal rsil, KLayout LVS deck flavour
+pex:
+  mode: RC                           # REPORT cross-check: wiring R kept (rshunt guard in pex_sim)
+  schematic_writer: write_pex_schematic   # 3-terminal rsil, kpex deck flavour
+  strip_mim: true                    # kpex has no cap_cmim (see layout/README.md)
+  strip_mim_layers: [[36, 0], [129, 0], [69, 0]]   # MIM, Vmim, MemCap
+  strip_mim_topmetal_margin_um: null
+  halo_um: 20              # r2: kpex sidewall halo 8 -> 20 um (couplings beyond the halo are DROPPED;
+                           # out_gap/cell_gap/gap_x knobs cross 8 um -> fake C steps at the tech default) # keep the plates as plain metal (coupling extracts)
+  ac_gnd_nets: [vcc, vcasc, vcmb, sub]
+  timeout_s: 1800
+measure:
+  module: measure_post.py
+  callable: measure
+  python: ../../.venv/bin/python
+  cwd: .
+  env: {PDK_ROOT: ~/local/pdks, PDK: ihp-sg13g2}
+  timeout_s: 1800
+gates: {drc: true, lvs: true, pex: true}
+retain: all

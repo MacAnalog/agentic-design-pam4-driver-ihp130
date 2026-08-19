@@ -9,47 +9,74 @@
 #
 #   theta_E (electrical): nx, tail_ma, rc_ohm, rb_ohm, re_ohm, cdeg_ff, vcasc
 #   theta_L (layout):     resistor widths + every floorplan spacing below
+#   theta_S (structural): the INT floorplan options (c_strip ... cell_order)
 #
-# `init` = the v2 signoff point (gen_layout.FINAL_LAYOUT + FINAL_BIASES);
-# seed_from_init makes it (usually) trial 0, so the run's first line must
-# reproduce the post-layout scorecard of the layout of record. NOTE (r2): the
-# r1 instrument read the worst in-band S-parameter on the ngspice `dec 20`
-# grid, whose last in-band points are 31.62 / 44.67 GHz — the true band-edge
-# values (32 / 50 GHz, = the paper's table and the block's run_verify.py spot
-# points) are S11 -9.94 / S22 -9.24 dB (kpex halo 8; -9.98 / -9.36 with the
-# r2 halo of 20 um): the layout of record does NOT meet either reflection
-# spec. r2 measures at the band edges (measure_post._band_max).
+# ROUND 3 (this file). `init` = the v3 point (= gen_layout.FINAL_LAYOUT +
+# FINAL_BIASES, the round-2 winner and today's layout of record), so trial 1
+# of every island must reproduce v3's post-layout scorecard measured at the
+# exact band edges with kpex CC halo 20 (../out/pex/metrics_v3_cc_halo20.json):
+#   S11 -10.069 / S22 -10.783 / gain 2.232 / 8.205 / BW 61.24 / swing 2.258 /
+#   power 190.19 mW / area 6880 um2.
 #
-# Objective (feasibility_reward = the paper's dual-mode single objective):
-# while any spec is violated the score is the weighted penalty sum; once ALL
-# eight signoff specs (+ the DRC/LVS/PEX gates + I_C validity) hold, the score
-# is the reward = the S11 and S22 margins below -10 dB (2 per dB each) plus a
-# small area term (0.2 per 1000 um2 under the paper's 11 300 um2).
+# What round 3 changes (owner brief 2026-08-18: "better symmetry, better
+# reflection, better power — most importantly better p/n balance"):
 #
-# Run (the platform workspace has nevergrad + the leaf tools; the block's own
-# venv runs the generator and the benches):
-#   ./run_round.sh r2 <seed> <budget> [algo]     (islands: one process per seed)
+#  1. G gains two SYMMETRIC output-bus variants (gen_layout.out_layer_of):
+#     out_split 2 = BOTH buses on TopMetal2, 3 = the mirror of v3's split
+#     (outp on TM2, outn on TopMetal1). v3's out_split=1 put the extra
+#     TopVia2/TM2 stack C on outn, the net the floorplan already loads more
+#     (v2, both buses on TM1: 16.4/17.8 fF; v3: 11.9/15.0 fF) — 2 gives both
+#     nets the same stack, 3 moves it to the lighter net so the two
+#     asymmetries cancel. All four values are DRC/LVS-clean (smoke-tested at
+#     the v3 point and at out_w 3.0/out_gap 3.0 and out_w 2.0/out_gap 20).
+#  2. The p/n balance metrics become part of the REWARD, not just bounds:
+#     pn_gain_imb_db, pn_phase_imb_deg and cm_leak_dbc carry
+#     `reward_type: relative-absolute` so every dB/degree of extra symmetry
+#     below the hinge is scored. The hinges are set just above the MEASURED
+#     halo-20 v3 values (see the r3 parity trial, results/r3/) so the init
+#     point is feasible and the reward landscape is live from trial 1 —
+#     tightening them below v3 would push the whole round into penalty mode.
+#     MEASURED v3 at halo 20 CC (the r3 parity trial, runs/r3par_s0 run_1):
+#     0.0431 dB / 0.876 deg / -41.87 dBc (the README's 0.05 / 1.2 / -39.5 are
+#     the halo-8 report instrument) -> hinges 0.05 dB / 1.0 deg / -40 dBc.
+#  2b. A new LAYOUT knob, `rc_gap`, joins them: it sets the distance from the
+#     outn bus to the RC body AND to the TopMetal2 vcc rail (y_vcc = the RC
+#     top). The per-net C budget of the parity trial says outn<->vcc is
+#     2.33 fF while outp<->vcc is 0.25 fF — the largest single p/n asymmetry
+#     of v3 is not the via stack but the same-metal run of the outn bus
+#     alongside the vcc rail, and rc_gap is the lever on it (it also unloads
+#     the output node, so it should help S22). TM2.bR (5 um space to a line
+#     WIDER than 5 um) does not bite: vcc_w is exactly 5.0 and the rule's
+#     -2.5/+2.5 size cycle erases it — verified by a full-deck DRC run on the
+#     tightest candidate in the box (4.33 um of space, PASS).
+#  3. `power` gains a (small) reward term — owner priority 3.
+#  4. s11's reward slope is steepened (weight 10, range 2 -> 5 per dB, 2.5x
+#     the r2 slope) so the search cannot pay for balance with the 0.07 dB of
+#     S11 margin v3 has; s22 keeps the r2 slope (2 per dB).
 #
-# ROUND HISTORY (this file = the current round; earlier rounds under rounds/):
+# NOTE the scores of r3 are NOT comparable with r1/r2 (different J).
+# Acceptance for this round is the owner's rule, not argmin J: all 8 signoff
+# specs met, balance clearly better than v3, S11/S22 no worse than v3.
+#
+# Islands (each is one process; rounds/r3_s1*_project_setup.yaml are the
+# copies with a different `init` for out_split — the r2 lesson is that an
+# optimizer started with a structural option at its old value rarely flips
+# it, so each variant gets its own start):
+#   s10 out_split 2 (both TM2)      s11 out_split 3 (mirrored)
+#   s12 out_split 1 (v3, as-is)     s13 out_split 0 (both TM1) / TwoPointsDE
+#
+# ROUND HISTORY (earlier rounds under rounds/):
 #   r1  rounds/r1_project_setup.yaml — the v2 generator as-is. 3 islands x 40.
-#       17 % DRC skips (CntB.a1 off-grid contacts, TV1.d TopVia1 enclosure,
-#       M2.b/TM1.b knob interactions) + 30 % build fails (rsil floor
-#       re_ohm*re_w < 12.6) -> generator guards, snapped via centres, the
-#       TopVia1 table fixed; best feasible point = init (islands 0/1) and
-#       r1_s2 run_13 (S11 -10.01 / S22 -10.65).
-#   r2  this file — structural knobs from the r1 review (c_strip, out_split,
-#       sub_bus, cell_order, bus_trim), tightened bounds (re_ohm >= 2.8,
-#       cdeg >= 12, rc_sep <= 8, out_gap <= 20, stack_w >= 1.1), the
-#       band-edge instrument + kpex halo 20. init = the layout of record
-#       (the r1 "winner" was an artefact of the halo cliff + grid, so the
-#       honest re-baseline is the start): trial 1 must read -9.98 / -9.36.
-#       Islands: s0/s1 OnePlusOne, s2 TwoPointsDE, 40 trials each, plus s3 =
-#       a multi-start island (rounds/r2_s3_project_setup.yaml: same bounds,
-#       init with the five structural knobs at the review's recommended
-#       values c_strip 2 / bus_trim, out_split, sub_bus, cell_order 1).
+#       17 % DRC skips + 30 % build fails -> generator guards, snapped via
+#       centres, the TopVia1 table fixed.
+#   r2  rounds/r2_project_setup.yaml (+ r2_s3_...) — the five structural
+#       knobs from the r1 review, band-edge instrument, kpex halo 20.
+#       4 islands x 40: 150 evaluated / 15 feasible / 10 skipped; ALL 15
+#       feasible points came from the island seeded with the structural
+#       options on. Winner = v3 (S11 -10.07 / S22 -10.79 / 6880 um2).
 project:
   name: PAM4-DRIVER-CODESIGN
-  description: sizing + layout co-design of the PAM-4 driver DAC (IHP SG13G2) for post-layout S11/S22 margin under the eight signoff specs
+  description: sizing + layout co-design of the PAM-4 driver DAC (IHP SG13G2) for post-layout p/n balance and S11/S22 margin under the eight signoff specs
   simulator: none            # unused by the layout backend (a required DSL field)
   save_sim: false
   parallel_sim: false
@@ -71,46 +98,51 @@ project:
   # schematic DUTs). Validity: I_C < 3 mA per emitter finger (model card) is
   # the `ic_ma_per_finger` spec; the rsil body-length floor (re_ohm*re_w >= 12.6)
   # fails the build (-> penalty) — bounds keep it rare.
+  # NOTE the binding electrical constraint of this box is msb_gain: v3 sits at
+  # 8.205 dB against a spec of 8.2, and gain ~ gm*Rc/(1+gm*Re), so anything
+  # that lowers the tail current (the power reward) has to buy the gain back
+  # on re_ohm (3.24 at v3, floor 2.8) or rc_ohm.
   # ------------------------------------------------------------------
   dut_params:
-    - { name: nx,        min_val: 2,    max_val: 4,    init: 3,    is_integer: true, description: "npn13G2 emitter fingers per device" }
-    - { name: tail_ma,   min_val: 10.0, max_val: 17.5, init: 15.0, description: "tail current per gain cell (mA)" }
-    - { name: rc_ohm,    min_val: 40.0, max_val: 70.0, init: 50.0, description: "collector load per side (ohm, on-chip back-termination)" }
-    - { name: rb_ohm,    min_val: 40.0, max_val: 60.0, init: 48.0, description: "input termination per side (ohm)" }
-    - { name: re_ohm,    min_val: 2.8,  max_val: 6.0,  init: 3.2,  description: "emitter degeneration per side (ohm)" }
-    - { name: cdeg_ff,   min_val: 12.0, max_val: 32.0, init: 16.0, description: "emitter bridging cap (fF, HF peaking)" }
-    - { name: vcasc,     min_val: 3.0,  max_val: 3.4,  init: 3.35, description: "cascode base bias (V)" }
+    - { name: nx,        min_val: 2,    max_val: 4,    init: 3,     is_integer: true, description: "npn13G2 emitter fingers per device" }
+    - { name: tail_ma,   min_val: 10.0, max_val: 17.5, init: 15.93, description: "tail current per gain cell (mA)" }
+    - { name: rc_ohm,    min_val: 40.0, max_val: 70.0, init: 46.51, description: "collector load per side (ohm, on-chip back-termination)" }
+    - { name: rb_ohm,    min_val: 40.0, max_val: 60.0, init: 49.92, description: "input termination per side (ohm)" }
+    - { name: re_ohm,    min_val: 2.8,  max_val: 6.0,  init: 3.24,  description: "emitter degeneration per side (ohm)" }
+    - { name: cdeg_ff,   min_val: 12.0, max_val: 32.0, init: 18.45, description: "emitter bridging cap (fF, HF peaking)" }
+    - { name: vcasc,     min_val: 3.0,  max_val: 3.4,  init: 3.31,  description: "cascode base bias (V)" }
     # ------------------------------------------------------------------
     # theta_L — layout knobs (um). Resistor lengths always re-derive from the
     # rsil model (R = 7*l/w + 9/w) so every candidate holds its resistance —
     # widths trade area/EM against parasitics. Bounds are the DRC-safe ranges
-    # of the v2 generator (TM1 min width 1.64, TopVia2 pad 1.9, ...).
+    # of the generator (TM1 min width 1.64, TM2 2.0, TopVia2 pad 1.9, ...).
     # ------------------------------------------------------------------
-    - { name: re_w,      min_val: 4.5,  max_val: 10.0, init: 4.5,  description: "RE rsil width (16 mA/cell path)" }
-    - { name: rc_w,      min_val: 1.0,  max_val: 3.0,  init: 1.4,  description: "RC rsil width (24 mA path)" }
-    - { name: rb_w,      min_val: 0.5,  max_val: 1.5,  init: 0.5,  description: "RB rsil width" }
-    - { name: gap_x,     min_val: 5.5,  max_val: 9.0,  init: 6.0,  description: "inner gap of a differential pair (Cdeg lives here)" }
-    - { name: row_gap,   min_val: 1.2,  max_val: 3.0,  init: 1.6,  description: "input row -> cascode row" }
-    - { name: cell_gap,  min_val: 4.0,  max_val: 9.0,  init: 5.0,  description: "gap between gain cells (row length)" }
-    - { name: out_gap,   min_val: 3.0,  max_val: 20.0, init: 8.0,  description: "outp <-> outn TM1 bus edge gap (differential sidewall C)" }
-    - { name: out_w,     min_val: 1.64, max_val: 3.0,  init: 1.64, description: "output bus width (TM1 min 1.64)" }
-    - { name: w_out,     min_val: 1.5,  max_val: 3.0,  init: 1.5,  description: "output Metal2 riser width" }
-    - { name: out_off,   min_val: 1.2,  max_val: 5.0,  init: 2.0,  description: "sub bus -> outp bus" }
-    - { name: rc_sep,    min_val: 4.0,  max_val: 8.0,  init: 4.0,  description: "RCp <-> RCn column separation" }
-    - { name: in_off,    min_val: 1.0,  max_val: 4.0,  init: 2.2,  description: "tail bus -> first input bus" }
-    - { name: in_bus_gap, min_val: 1.0, max_val: 4.0,  init: 3.0,  description: "input bus pair gap (Metal4)" }
-    - { name: sub_off,   min_val: 1.0,  max_val: 3.0,  init: 1.4,  description: "cascode row -> substrate bus" }
-    - { name: stack_w,   min_val: 1.1,  max_val: 2.5,  init: 1.7,  description: "via-stack pad size (per-via clamped)" }
+    - { name: re_w,      min_val: 4.5,  max_val: 10.0, init: 4.61, description: "RE rsil width (16 mA/cell path)" }
+    - { name: rc_w,      min_val: 1.0,  max_val: 3.0,  init: 1.01, description: "RC rsil width (24 mA path)" }
+    - { name: rb_w,      min_val: 0.5,  max_val: 1.5,  init: 0.58, description: "RB rsil width" }
+    - { name: gap_x,     min_val: 5.5,  max_val: 9.0,  init: 5.5,  description: "inner gap of a differential pair (Cdeg lives here)" }
+    - { name: row_gap,   min_val: 1.2,  max_val: 3.0,  init: 1.74, description: "input row -> cascode row" }
+    - { name: cell_gap,  min_val: 4.0,  max_val: 9.0,  init: 4.76, description: "gap between gain cells (row length)" }
+    - { name: out_gap,   min_val: 3.0,  max_val: 20.0, init: 6.37, description: "outp <-> outn bus edge gap (differential sidewall C; >= TM2 space 2.0)" }
+    - { name: out_w,     min_val: 1.64, max_val: 3.0,  init: 1.65, description: "output bus width (TM1 min 1.64; clamped to 2.0 on TM2)" }
+    - { name: w_out,     min_val: 1.5,  max_val: 3.0,  init: 1.54, description: "output Metal2 riser width" }
+    - { name: out_off,   min_val: 1.2,  max_val: 5.0,  init: 2.3,  description: "sub bus -> outp bus" }
+    - { name: rc_sep,    min_val: 4.0,  max_val: 8.0,  init: 4.64, description: "RCp <-> RCn column separation" }
+    - { name: rc_gap,    min_val: 2.0,  max_val: 8.0,  init: 2.0,  description: "outn bus -> RC body; ALSO outn bus -> TopMetal2 vcc rail (r3: outn<->vcc is 2.33 fF vs outp's 0.25 fF)" }
+    - { name: in_off,    min_val: 1.0,  max_val: 4.0,  init: 2.23, description: "tail bus -> first input bus" }
+    - { name: in_bus_gap, min_val: 1.0, max_val: 4.0,  init: 3.03, description: "input bus pair gap (Metal4)" }
+    - { name: sub_off,   min_val: 1.0,  max_val: 3.0,  init: 1.34, description: "cascode row -> substrate bus" }
+    - { name: stack_w,   min_val: 1.1,  max_val: 2.5,  init: 1.52, description: "via-stack pad size (per-via clamped)" }
     # ------------------------------------------------------------------
-    # theta_S — structural options added for round 2 (gen_layout.py: "co-design
-    # round-2 structural options"); INT knobs so the search, not the author,
-    # picks the floorplan variant. 0 = the round-1 geometry for every one.
+    # theta_S — structural options (gen_layout.py). INT knobs so the search,
+    # not the author, picks the floorplan variant. init = the v3 point.
     # ------------------------------------------------------------------
-    - { name: c_strip,    min_val: 0, max_val: 2, init: 0, is_integer: true, description: "cascode-collector M2 tap: 0 full strip | 1 upper-half strip | 2 riser-width tab (outp<->c1 sidewall C)" }
-    - { name: bus_trim,   min_val: 0, max_val: 1, init: 0, is_integer: true, description: "1 = each output bus spans only its own risers + RC (-16 um TM1, shorter outp||outn run)" }
-    - { name: out_split,  min_val: 0, max_val: 1, init: 0, is_integer: true, description: "1 = outn bus on TopMetal2 (kills TM1 bus<->bus sidewall C)" }
-    - { name: sub_bus,    min_val: 0, max_val: 1, init: 0, is_integer: true, description: "0 = Metal3 substrate bus | 1 = taps tie to the ring on Metal1 (no bus under the output risers)" }
-    - { name: cell_order, min_val: 0, max_val: 1, init: 0, is_integer: true, description: "0 = M0|L0|M1 | 1 = M0|M1|L0 (shorter MSB input bus)" }
+    - { name: c_strip,    min_val: 0, max_val: 2, init: 2, is_integer: true, description: "cascode-collector M2 tap: 0 full strip | 1 upper-half strip | 2 riser-width tab (outp<->c1 sidewall C)" }
+    - { name: bus_trim,   min_val: 0, max_val: 1, init: 1, is_integer: true, description: "1 = each output bus spans only its own risers + RC (-16 um TM1, shorter outp||outn run)" }
+    - { name: out_split,  min_val: 0, max_val: 3, init: 1, is_integer: true, description: "output-bus metal: 0 both TM1 | 1 outn on TM2 (v3) | 2 BOTH on TM2 (symmetric, r3) | 3 outp on TM2 (mirrored, r3)" }
+    - { name: sub_bus,    min_val: 0, max_val: 1, init: 1, is_integer: true, description: "0 = Metal3 substrate bus | 1 = taps tie to the ring on Metal1 (no bus under the output risers)" }
+    - { name: in_order,   min_val: 0, max_val: 1, init: 0, is_integer: true, description: "input-bus row order: 0 = msbp|msbn|lsbp|lsbn (v1..v3) | 1 = p/n swapped per channel (r3: flips the SIGN of the input-side p/n asymmetry)" }
+    - { name: cell_order, min_val: 0, max_val: 1, init: 1, is_integer: true, description: "0 = M0|L0|M1 | 1 = M0|M1|L0 (shorter MSB input bus)" }
 
   testbenches:
     - name: layout
@@ -121,19 +153,39 @@ project:
 
   optimizer_config:
     type: nevergrad
-    name: TwoPointsDE
-    budget: 60
+    name: OnePlusOne
+    budget: 40
     random_seed: 0
     seed_from_init: true
     optimizer_kwargs: {num_workers: 4}
     lin_variable_bounds: {min: 0, max: 1}
     log_variable_bounds: {min: 1, max: 100}
+    # J = the paper's feasibility_reward: while ANY spec below is violated the
+    # score is the weighted penalty sum; once every one holds, the score is the
+    # sum of the reward terms (margin beyond the target / range * weight).
+    #   s11   5.0 per dB below -10      s22   2.0 per dB below -10
+    #   cm_leak 0.5 per dB below the hinge   pn_phase 2.0 per degree
+    #   pn_gain 30 per dB (i.e. 0.3 per 0.01 dB)   power 0.15 per mW
+    #   area 0.2 per 1000 um2 under the paper's 11 300 um2
     target_specs:
-      # --- the objective once feasible: reflection margin (2 per dB), a little area ---
-      - { name: s11,   testbench: layout, sim_type: layout, goal: minimize, target: -10.0, range: 5.0, tolerance: 0, weight: 10, error_type: relative-absolute, reward_type: relative-absolute,
-          description: "worst-path S11 <= 32 GHz (dB); reward = margin below -10 dB" }
+      # --- reflection: spec AND objective ---
+      - { name: s11,   testbench: layout, sim_type: layout, goal: minimize, target: -10.0, range: 2.0, tolerance: 0, weight: 10, error_type: relative-absolute, reward_type: relative-absolute,
+          description: "worst-path S11 <= 32 GHz (dB); reward = 5/dB of margin below -10 dB (r2 slope x2.5: v3's margin is only 0.07 dB)" }
       - { name: s22,   testbench: layout, sim_type: layout, goal: minimize, target: -10.0, range: 5.0, tolerance: 0, weight: 10, error_type: relative-absolute, reward_type: relative-absolute,
-          description: "S22 <= 50 GHz (dB); reward = margin below -10 dB" }
+          description: "S22 <= 50 GHz (dB); reward = 2/dB of margin below -10 dB" }
+      # --- p/n balance: the round-3 objective (owner priority 1). Hinges are
+      #     set just above the MEASURED halo-20 v3 values so init is feasible;
+      #     the reward is what drives the search toward v2-level symmetry
+      #     (0.03 dB / 0.5 deg / -46.5 dBc, halo 8). ---
+      - { name: pn_gain_imb_db,   testbench: layout, sim_type: layout, goal: minimize, target: 0.05,  range: 0.1, tolerance: 0, weight: 3, error_type: relative-absolute, reward_type: relative-absolute,
+          description: "max |20log|Vp|-20log|Vn|| of the MSB path <= 48 GHz (dB); reward 30/dB" }
+      - { name: pn_phase_imb_deg, testbench: layout, sim_type: layout, goal: minimize, target: 1.0,  range: 2.0,  tolerance: 0, weight: 4, error_type: relative-absolute, reward_type: relative-absolute,
+          description: "max deviation of the p/n output phase from 180 deg <= 48 GHz; reward 2/deg" }
+      - { name: cm_leak_dbc,      testbench: layout, sim_type: layout, goal: minimize, target: -40.0, range: 10.0, tolerance: 0, weight: 5, error_type: relative-absolute, reward_type: relative-absolute,
+          description: "differential-to-common-mode conversion 20log|Vp+Vn|/|Vp-Vn|, worst <= 48 GHz (dBc); reward 0.5/dB" }
+      # --- power (owner priority 3) and area: spec + small reward ---
+      - { name: power,    testbench: layout, sim_type: layout, goal: minimize, target: 192.0, range: 20.0, tolerance: 0, weight: 3, error_type: relative-absolute, reward_type: relative-absolute,
+          description: "supply power at 4 V (mW); reward 0.15/mW under the 192 mW spec" }
       - { name: area_um2, testbench: layout, sim_type: layout, goal: minimize, target: 11300, range: 5000, tolerance: 0, weight: 1, error_type: relative-absolute, reward_type: relative-absolute,
           description: "core bbox area; the paper's chip is 11 300 um2" }
       # --- the remaining signoff specs as bounds (no reward) ---
@@ -142,18 +194,7 @@ project:
       - { name: weight,   testbench: layout, sim_type: layout, goal: exceed,   target: 5.0,  range: 1.0, tolerance: 0, weight: 5, reward_type: none }
       - { name: bw,       testbench: layout, sim_type: layout, goal: exceed,   target: 50.0, range: 10.0, tolerance: 0, weight: 5, reward_type: none }
       - { name: swing,    testbench: layout, sim_type: layout, goal: exceed,   target: 2.1,  range: 0.2, tolerance: 0, weight: 5, reward_type: none }
-      - { name: power,    testbench: layout, sim_type: layout, goal: minimize, target: 192.0, range: 20.0, tolerance: 0, weight: 5, reward_type: none }
       # --- validity + physical gates ---
-      # --- p/n balance (matching audit after r2; measure_post via driver_lib.run_ac_balance,
-      #     MSB path <= 48 GHz). Bounds = "no worse than 2x the layout of record" (v2: 0.03 dB /
-      #     0.5 deg / -46.5 dBc; v3 accepted: 0.05 dB / 1.2 deg / -39.5 dBc). Round-3+ specs —
-      #     the r1/r2 record was scored without them.
-      - { name: pn_gain_imb_db,   testbench: layout, sim_type: layout, goal: minimize, target: 0.1,   range: 0.1,  tolerance: 0, weight: 5, reward_type: none,
-          description: "max |20log|Vp|-20log|Vn|| of the MSB path <= 48 GHz (dB)" }
-      - { name: pn_phase_imb_deg, testbench: layout, sim_type: layout, goal: minimize, target: 2.0,   range: 2.0,  tolerance: 0, weight: 5, reward_type: none,
-          description: "max deviation of the p/n output phase from 180 deg <= 48 GHz" }
-      - { name: cm_leak_dbc,      testbench: layout, sim_type: layout, goal: minimize, target: -35.0, range: 10.0, tolerance: 0, weight: 5, reward_type: none,
-          description: "differential-to-common-mode conversion 20log|Vp+Vn|/|Vp-Vn|, worst <= 48 GHz (dBc)" }
       - { name: ic_ma_per_finger, testbench: layout, sim_type: layout, goal: minimize, target: 3.0, range: 1.0, tolerance: 0, weight: 50, reward_type: none,
           description: "npn13G2 model-card validity: I_C < 3 mA per emitter finger" }
       - { name: drc_pass,  testbench: layout, sim_type: layout, goal: exact, target: 1, tolerance: 0, range: 1, weight: 100, reward_type: none }

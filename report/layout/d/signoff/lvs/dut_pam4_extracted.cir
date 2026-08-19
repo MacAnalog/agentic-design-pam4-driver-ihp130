@@ -1,6 +1,6 @@
-* Extracted by KLayout with SG13G2 LVS runset on : 18/08/2026 11:33
+* Extracted by KLayout with SG13G2 LVS runset on : 18/08/2026 20:32
 
-.SUBCKT pam4drv_pam4_lay sub msbp msbn lsbp vcmb lsbn tmsb1 tlsb0 tmsb0 vcasc
+.SUBCKT pam4drv_pam4_lay sub msbp msbn lsbp vcmb lsbn tmsb0 tmsb1 tlsb0 vcasc
 + outp outn vcc
 Q$1 outn vcasc \$54 sub npn13G2 AE=0.063p PE=1.94u AB=19.2965p PB=19.32u
 + AC=19.283334p PC=19.31u NE=3 m=3
@@ -38,7 +38,7 @@ R$45 tlsb0 \$14 rsil w=4.61u l=0.85u ps=0 b=0 m=1
 R$46 tlsb0 \$15 rsil w=4.61u l=0.85u ps=0 b=0 m=1
 R$47 outp vcc rsil w=1.01u l=5.43u ps=0 b=0 m=1
 R$48 outn vcc rsil w=1.01u l=5.43u ps=0 b=0 m=1
-C$49 \$11 \$10 cap_cmim w=3.45u l=3.45u A=11.9025p P=13.8u m=1
+C$49 \$13 \$12 cap_cmim w=3.45u l=3.45u A=11.9025p P=13.8u m=1
 C$50 \$15 \$14 cap_cmim w=3.45u l=3.45u A=11.9025p P=13.8u m=1
-C$51 \$13 \$12 cap_cmim w=3.45u l=3.45u A=11.9025p P=13.8u m=1
+C$51 \$11 \$10 cap_cmim w=3.45u l=3.45u A=11.9025p P=13.8u m=1
 .ENDS pam4drv_pam4_lay

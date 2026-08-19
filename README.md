@@ -8,9 +8,9 @@ layout, kpex extraction, and a layout + electrical co-optimization that
 closes **all eight post-layout specs** — first with a block-local optimizer
 (v2), then by running the paper's **layout/schematic co-design algorithm
 through the SpiceXplorer platform** (`spicexplorer-optimize`,
-`sim_engine: layout`; v3, the layout of record). The audit trail is four
-notebooks plus a self-contained **reviewer report** ([`report/`](report/README.md):
-schematic vs v1 / v2 / v3 layouts through the same benches, DRC/LVS/PEX
+`sim_engine: layout`; three rounds — **v4** is the layout of record). The audit
+trail is four notebooks plus a self-contained **reviewer report** ([`report/`](report/README.md):
+schematic vs v1 / v2 / v3 / v4 layouts through the same benches, DRC/LVS/PEX
 evidence, GDS + netlists, KLayout renders, eyes, tables — `make report`);
 every result below reproduces from this repo — and every number in the
 final table can be re-run by hand from static ngspice decks:
@@ -19,9 +19,9 @@ final table can be re-run by hand from static ngspice decks:
 ## The layout journey
 
 Original v1 layout (edge-fed input, 1.8 µm output-bus gap, nx=2 / R_C=70 Ω
-electrical point) → the co-designed layout of record (v3):
+electrical point) → the co-designed layout of record (v4):
 
-![before/after layout: original v1 vs co-designed v3](layout/before_after.png)
+![before/after layout: original v1 vs the co-designed layout of record](layout/before_after.png)
 
 The first optimization pass scored only S11/BW/gain/power — and its winner
 (nx=2, R_C=70 Ω) sailed through those while silently **failing S22
@@ -62,6 +62,30 @@ layout review into five **structural INT knobs** (`bus_trim`, `sub_bus`,
 | gain LSB / MSB, BW, swing, power | 2.27 / 8.25 dB, 58.8 GHz, 2.21 Vpp, 179 mW | 2.23 / 8.21 dB, 61.1 GHz, 2.26 Vpp, 190 mW |
 | core area | 7552 µm² | **6880 µm²** (−9 %; −39 % vs the paper's 11 300) |
 
+### v4 — co-design round 3: p/n balance as an objective (2026-08-18)
+
+The r2 review's open item was **matching**: the accepted v3 floorplan is
+asymmetric by construction (one output bus on TopMetal2, per-net bus trimming)
+and its p/n balance had degraded (0.053 dB / 1.18° / −39.4 dBc against v2's
+0.03 / 0.5° / −46.5). Round 3 measured the balance of *both* DAC paths in the
+hook, made it a **reward** in `J` (with power), and added the knobs the
+extraction pointed at — the symmetric/mirrored `out_split` variants, a
+p/n-swapped input row order, and `rc_gap` (the outn bus ↔ TopMetal2 vcc rail,
+2.34 fF against outp's 0.26). 520 trials over 14 islands:
+
+| | v3 | **v4 accepted** |
+|---|---|---|
+| S11 @32 GHz / S22 @50 GHz (halo 20 CC) | −10.070 / −10.790 dB | **−10.073 / −10.812 dB** |
+| p/n \|gain\| / phase / diff→CM ≤ 48 GHz | 0.043 dB / 0.88° / −41.9 dBc | **0.035 dB / 0.64° / −44.5 dBc** |
+| gain LSB / MSB, BW, swing, power | 2.232 / 8.205 dB, 61.2 GHz, 2.26 Vpp, 190.2 mW | 2.269 / 8.244 dB, 61.4 GHz, 2.24 Vpp, **185.0 mW** |
+| core area | 6880 µm² | 7055 µm² (+2.5 %; −38 % vs the paper's 11 300) |
+
+The *symmetric* metal options and the input-row swap were measured and are
+**nulls** — the balance came from the per-net C budget (output-net asymmetry
+2.01 → 1.46 fF) and the electrical point; and the round's ceiling is that
+every larger balance gain costs 0.1–0.5 dB of S22 (only 6 of 520 trials hold
+both reflections at the v3 level).
+
 Full story, rounds table, ceiling analysis and the annotated parameterized
 layout: [layout/codesign/README.md](layout/codesign/README.md); notebook 04.
 
@@ -75,7 +99,7 @@ platform needs is in **[`layout/codesign/`](layout/codesign/)** — three files:
 | file | role in Alg. 1 |
 |---|---|
 | [`flow.yaml`](layout/codesign/flow.yaml) | `layout-flow/1`: *what one trial is* — `generator: ../gen_layout.py`, `cell`, KLayout DRC + LVS (per-trial reference from the generator), kpex 2.5D (`mode: CC`, MIM stripped, `halo_um: 20`), and the `measure:` hook; `gates: {drc, lvs, pex}` = the skip rule |
-| [`project_setup.yaml`](layout/codesign/project_setup.yaml) | `sim_engine: layout`: *the search* — `dut_params` = θ_E ∪ θ_L ∪ θ_S with `init` = the layout of record (`seed_from_init`), `target_specs` = the eight signoff specs as feasibility bounds + S11/S22/area margins as the reward (`feasibility_reward` J), `ic_ma_per_finger` validity, DRC/LVS/PEX gates as `exact 1` specs |
+| [`project_setup.yaml`](layout/codesign/project_setup.yaml) | `sim_engine: layout`: *the search* — `dut_params` = θ_E ∪ θ_L ∪ θ_S with `init` = the layout of record (`seed_from_init`), `target_specs` = the eight signoff specs as feasibility bounds + S11/S22/p-n-balance/power/area margins as the reward (`feasibility_reward` J), `ic_ma_per_finger` validity, DRC/LVS/PEX gates as `exact 1` specs |
 | [`measure_post.py`](layout/codesign/measure_post.py) | the hook `measure(req) -> scalars`: kpex netlist → `pex_sim.convert_pex_netlist` (MIM re-inserted) → `wrap_layout_dut` → the block's own `driver_lib` benches (`run_ac`, `run_ac_s22`, `run_dc`, bias) with the trial's sizing + `deck_params` (tail, V_casc) → `s11, s22, msb_gain, lsb_gain, weight, bw, swing, power, ic_ma_per_finger` |
 
 ```yaml
@@ -118,36 +142,39 @@ density, ground cage, matching dummies) are tracked in
 
 ## Results
 
-| metric (post-layout `pam4`, kpex 2.5D) | paper (meas.) | EIC ref (schem) | v2 (2026-08-09) | **v3 (layout of record)** | spec |
-|---|---|---|---|---|---|
-| LSB / MSB LF gain | 3.2 / 9.2 dB | 3.10 / 9.07 | 2.27 / 8.25 dB | **2.23 / 8.21 dB** | ≥ 2.2 / ≥ 8.2 ✅ |
-| DAC weight | 6.0 dB | 5.97 | 5.98 dB | **5.97 dB** | ≥ 5.0 ✅ |
-| Bandwidth (worst path) | 51–67 GHz | 68.5 | 58.8 GHz | **61.1 GHz** | ≥ 50 ✅ |
-| S11 at 32 GHz | < −10 | −10.87 | −9.94 dB ✗ | **−10.05 dB** | ≤ −10 ✅ |
-| S22 at 50 GHz | < −10 | −14.76 | −9.24 dB ✗ | **−10.72 dB** | ≤ −10 ✅ |
-| Max diff swing | 2.1 Vpp | 2.92 | 2.21 Vpp | **2.26 Vpp** | ≥ 2.1 ✅ |
-| Power | 192 mW | 191 | 179 mW @ 4 V | **190 mW @ 4 V** | ≤ 192 ✅ |
-| 48 GBd PAM-4 eye (200 mV$_{pp}$ in) | Fig. 5 | RLM 0.995, 0.25 V eyes | RLM 0.995, 0.23 V eyes | **RLM 0.995, 0.23 V eyes** | open ✅ |
-| Core area | 0.011 mm² | — | 0.0076 mm² | **0.0069 mm²** (97.6 × 70.5 µm) | — |
+| metric (post-layout `pam4`, kpex 2.5D) | paper (meas.) | EIC ref (schem) | v2 (2026-08-09) | v3 (co-design r2) | **v4 (layout of record)** | spec |
+|---|---|---|---|---|---|---|
+| LSB / MSB LF gain | 3.2 / 9.2 dB | 3.10 / 9.07 | 2.27 / 8.25 dB | 2.23 / 8.20 dB | **2.27 / 8.24 dB** | ≥ 2.2 / ≥ 8.2 ✅ |
+| DAC weight | 6.0 dB | 5.97 | 5.98 dB | 5.97 dB | **5.97 dB** | ≥ 5.0 ✅ |
+| Bandwidth (worst path) | 51–67 GHz | 66.6 | 58.8 GHz | 61.1 GHz | **61.1 GHz** | ≥ 50 ✅ |
+| S11 at 32 GHz | < −10 | −10.87 | −9.94 dB ✗ | −10.05 dB | **−10.03 dB** | ≤ −10 ✅ |
+| S22 at 50 GHz | < −10 | −14.75 | −9.24 dB ✗ | −10.72 dB | **−10.71 dB** | ≤ −10 ✅ |
+| p/n balance ≤ 48 GHz (gain / phase / diff→CM) | — | ideal | 0.03 dB / 0.5° / −46.5 dBc | 0.05 dB / 1.2° / −39.5 dBc | **0.05 dB / 1.0° / −40.9 dBc** | audit |
+| Max diff swing | 2.1 Vpp | 2.37 | 2.21 Vpp | 2.26 Vpp | **2.24 Vpp** | ≥ 2.1 ✅ |
+| Power | 192 mW | 191 | 179 mW @ 4 V | 190 mW @ 4 V | **185 mW @ 4 V** | ≤ 192 ✅ |
+| 48 GBd PAM-4 eye (200 mV$_{pp}$ in) | Fig. 5 | RLM 0.995, 0.25 V eyes | RLM 0.995, 0.23 V eyes | RLM 0.995, 0.23 V eyes | **RLM 0.994, 0.23 V eyes** | open ✅ |
+| Core area | 0.011 mm² | — | 0.0076 mm² | 0.0069 mm² | **0.0071 mm²** (102.0 × 69.2 µm) | — |
 
 S11/S22 are the worst in-band values *including the interpolated 32 / 50 GHz
 band edge* (kpex CC, tech halo 8 µm — the block's default instrument; the
-v2 column is the record re-measured that way, see the v3 section above).
+v2 column is the record re-measured that way, see the v3 section above). The
+co-design search runs at halo 20, where v4 reads −10.073 / −10.812 dB and
+0.035 dB / 0.64° / −44.5 dBc — better than v3 on every one of them.
 Eye metrics are read at the eye centre (`report/build_report.py`; the
-notebooks sample at a fixed phase and read RLM ≈ 0.97). All four tiers —
-schematic, first-pass layout, v2, v3 — side by side with the same instrument,
+notebooks sample at a fixed phase and read RLM ≈ 0.97). All five tiers —
+schematic, first-pass layout, v2, v3, v4 — side by side with the same instrument,
 plus the p/n balance audit and per-tier DRC/LVS/PEX evidence, are in
 [`report/`](report/README.md) (`report/data/tables.md`).
 Both columns through the same `driver_lib` benches (notebook 04 §5):
 
-![48 GBd eyes, all four tiers](report/figs/fig_eye.png)
+![48 GBd eyes, all five tiers](report/figs/fig_eye.png)
 
 ![first-pass vs co-designed layout, KLayout render](report/figs/fig_layout_b_vs_d.png)
 
-![v2 vs v3 S-parameters](notebooks/report_figs/sparams_v2_v3_post_layout.png)
+![v2 vs v4 S-parameters](notebooks/report_figs/sparams_v2_v4_post_layout.png)
 
-**S-parameters, all four tiers** (S21 both paths, S11, S22 — schematic /
-first-pass / v2 / v3, `report/`):
+**S-parameters, all five tiers** (S21 both paths, S11, S22 — schematic /
+first-pass / v2 / v3 / v4, `report/`):
 
 ![s-parameters](report/figs/fig_sparams.png)
 
@@ -156,16 +183,16 @@ first-pass / v2 / v3, `report/`):
 ![dc transfer](report/figs/fig_dc.png)
 ![balance](report/figs/fig_balance.png)
 
-**Final pam4 layout — v3, the layout of record** (3 differential cascode
+**Final pam4 layout — v4, the layout of record** (3 differential cascode
 cells summing into shared collector loads; DRC + LVS clean; KLayout render,
 every optimizer knob annotated):
 
-![final layout v3](report/figs/fig_layout_annotated.png)
+![final layout v4](report/figs/fig_layout_annotated.png)
 
 The notebook-03 signoff figures (`notebooks/report_figs/{pam4_layout_final,
 eye_48gbd_pam4,sparams_s21_s11_s22,dc_transfer_dac_levels}.png`) are the
 **v2** layout of record (they run on `layout/out/pex/dut_pam4_best_post.spice`);
-`report/` supersedes them for v3.
+`report/` supersedes them for v3 / v4.
 
 The report plots regenerate with `make report`, the notebook plots from
 `notebooks/03_signoff.py`; the executed
@@ -186,10 +213,10 @@ dut/          three DUT subcircuits (lsb / msb / pam4 2-bit DAC)
 netlists/     static, directly runnable ngspice decks (+ .spiceinit)
 testbenches/  driver_lib.py — netlist-agnostic benches (schematic AND
               post-layout via dut_ref=), run_verify.py, run_eye.py
-layout/       gen_layout.py (parameterized generator, FINAL_LAYOUT = v3,
-              V2_LAYOUT), signoff.py (DRC+LVS, vendored PDK runner),
+layout/       gen_layout.py (parameterized generator, FINAL_LAYOUT = v4,
+              V3_LAYOUT, V2_LAYOUT), signoff.py (DRC+LVS, vendored PDK runner),
               pex_sim.py (kpex), optimize_layout.py (block-local v1/v2 loop),
-              LAYOUT_REVIEW.md, before_after.png (v1 -> v3; _v2 = v1 -> v2),
+              LAYOUT_REVIEW.md, before_after.png (v1 -> v4; _v2/_v3 = v1 -> v2/v3),
               codesign/ (Alg. 1 through spicexplorer-optimize: flow.yaml,
               project_setup.yaml, measure hook, rounds/, results/, figures),
               out/ (v3 netlists, PEX, renders; GDS regenerates)

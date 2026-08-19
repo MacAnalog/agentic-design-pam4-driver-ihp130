@@ -1,4 +1,4 @@
-* Extracted by KLayout with SG13G2 LVS runset on : 18/08/2026 11:32
+* Extracted by KLayout with SG13G2 LVS runset on : 18/08/2026 20:31
 
 .SUBCKT pam4drv_pam4_lay sub msbp msbn lsbp vcmb lsbn tmsb0 tlsb0 tmsb1 vcasc
 + outp outn vcc

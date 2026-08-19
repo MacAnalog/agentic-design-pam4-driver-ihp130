@@ -10,13 +10,16 @@ Status annotations (2026-08-09 pm): items marked **[DONE]** were
 implemented in the v2 resize (see `README.md` v2 section and
 `gen_layout.V2_LAYOUT`); items marked **[OPEN]** are pre-tapeout work.
 
-Update 2026-08-18: the layout of record is now **v3** (`gen_layout.FINAL_LAYOUT`,
-co-designed through the SpiceXplorer platform — `codesign/README.md`). The
-round-1 review of that loop turned into five structural generator options
-(`bus_trim`, `sub_bus`, `cell_order`, `c_strip`, `out_split`); the p/n
-matching audit of v3 (asymmetric `out_split` risers) and the reviewer
+Update 2026-08-18: the layout of record is now **v4** (`gen_layout.FINAL_LAYOUT`,
+co-design round 3 through the SpiceXplorer platform — `codesign/README.md`;
+the round-2 point is `V3_LAYOUT`). The round-1 review of that loop turned into
+five structural generator options (`bus_trim`, `sub_bus`, `cell_order`,
+`c_strip`, `out_split`), and the r2 matching audit into three more round-3
+knobs (symmetric/mirrored `out_split`, `in_order`, `rc_gap`) — of which only
+`rc_gap` moved the balance; the audit itself (v4: 0.035 dB / 0.64° /
+−44.5 dBc at halo 20, from v3's 0.043 / 0.88° / −41.9) and the reviewer
 evidence for every tier are in `codesign/README.md` "Matching audit" and
-`../report/`. The **[OPEN]** pre-tapeout items below still stand for v3.
+`../report/`. The **[OPEN]** pre-tapeout items below still stand for v4.
 
 ## Headline findings
 

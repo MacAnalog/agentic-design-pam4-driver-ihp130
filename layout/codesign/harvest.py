@@ -18,7 +18,10 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
 
-SPECS = {  # name: (goal, target, range, weight, reward)  — mirrors project_setup.yaml
+# name: (goal, target, range, weight, reward) — mirrors the round's project_setup.yaml.
+# r1/r2 and r3 do NOT share a J (r3 rewards p/n balance and power and steepens
+# s11), so scores are only comparable WITHIN a round; `--specs` picks the table.
+SPECS_R2 = {
     "s11": ("min", -10.0, 5.0, 10, True), "s22": ("min", -10.0, 5.0, 10, True),
     "area_um2": ("min", 11300.0, 5000.0, 1, True),
     "msb_gain": ("max", 8.2, 1.0, 5, False), "lsb_gain": ("max", 2.2, 1.0, 5, False),
@@ -28,6 +31,22 @@ SPECS = {  # name: (goal, target, range, weight, reward)  — mirrors project_se
     "drc_pass": ("eq", 1, 1, 100, False), "lvs_match": ("eq", 1, 1, 100, False),
     "pex_ok": ("eq", 1, 1, 100, False),
 }
+SPECS_R3 = {
+    "s11": ("min", -10.0, 2.0, 10, True), "s22": ("min", -10.0, 5.0, 10, True),
+    "pn_gain_imb_db": ("min", 0.05, 0.1, 3, True),
+    "pn_phase_imb_deg": ("min", 1.0, 2.0, 4, True),
+    "cm_leak_dbc": ("min", -40.0, 10.0, 5, True),
+    "power": ("min", 192.0, 20.0, 3, True),
+    "area_um2": ("min", 11300.0, 5000.0, 1, True),
+    "msb_gain": ("max", 8.2, 1.0, 5, False), "lsb_gain": ("max", 2.2, 1.0, 5, False),
+    "weight": ("max", 5.0, 1.0, 5, False), "bw": ("max", 50.0, 10.0, 5, False),
+    "swing": ("max", 2.1, 0.2, 5, False),
+    "ic_ma_per_finger": ("min", 3.0, 1.0, 50, False),
+    "drc_pass": ("eq", 1, 1, 100, False), "lvs_match": ("eq", 1, 1, 100, False),
+    "pex_ok": ("eq", 1, 1, 100, False),
+}
+SPEC_TABLES = {"r2": SPECS_R2, "r3": SPECS_R3}
+SPECS = SPECS_R3
 MAX_PENALTY = 1e6
 
 
@@ -78,7 +97,17 @@ def main() -> None:
     ap.add_argument("dirs", nargs="+")
     ap.add_argument("--out", default=os.path.join(HERE, "results"))
     ap.add_argument("--instrument", default="", help="how the metrics were measured (recorded in summary.json)")
+    ap.add_argument("--specs", default="r3", choices=sorted(SPEC_TABLES),
+                    help="which round's J to re-score the trials with (default r3)")
+    ap.add_argument("--accept", default="", metavar="ISLAND/RUN",
+                    help="the trial the round ACCEPTS (e.g. r3_s21/run_12_layout). argmax-J is "
+                         "not automatically the accepted point: J trades reflection margin for "
+                         "balance/power, while acceptance also requires 'no worse than the "
+                         "previous layout of record'. Copied out as accepted.{gds,png} and "
+                         "recorded in summary.json.")
     a = ap.parse_args()
+    global SPECS
+    SPECS = SPEC_TABLES[a.specs]
     rows = load_runs(a.dirs)
     out = os.path.join(a.out, a.round)
     os.makedirs(out, exist_ok=True)
@@ -88,24 +117,34 @@ def main() -> None:
     ok = [r for r in rows if r["status"] == "ok"]
     feas = [r for r in rows if r["feasible"]]
     best = max(rows, key=lambda r: r["score"]) if rows else None
-    summ = {"round": a.round, "instrument": a.instrument, "n_trials": len(rows), "n_ok": len(ok),
+    acc = None
+    if a.accept:
+        isl, run = a.accept.split("/")
+        hits = [r for r in rows if r["island"] == isl and r["run"] == run]
+        if not hits:
+            raise SystemExit(f"--accept {a.accept}: no such trial in {a.dirs}")
+        acc = hits[0]
+    summ = {"round": a.round, "instrument": a.instrument, "scored_with": a.specs, "n_trials": len(rows), "n_ok": len(ok),
             "n_feasible": len(feas),
             "n_status": {s: sum(1 for r in rows if r["status"] == s)
                          for s in sorted({r["status"] for r in rows})},
-            "best": {k: v for k, v in best.items() if k != "run_dir"} if best else None}
+            "best": {k: v for k, v in best.items() if k != "run_dir"} if best else None,
+            "accepted": {k: v for k, v in acc.items() if k != "run_dir"} if acc else None}
     json.dump(summ, open(os.path.join(out, "summary.json"), "w"), indent=1)
-    if best:
-        rd = best["run_dir"]
+    for tag, r in (("best", best), ("accepted", acc)):
+        if not r:
+            continue
+        rd = r["run_dir"]
         for fn in os.listdir(rd):
             if fn.endswith(".gds") and "nomim" not in fn:
-                shutil.copy(os.path.join(rd, fn), os.path.join(out, "best.gds"))
+                shutil.copy(os.path.join(rd, fn), os.path.join(out, f"{tag}.gds"))
             if fn.endswith("_post.spice"):
-                shutil.copy(os.path.join(rd, fn), os.path.join(out, "best_post.spice"))
+                shutil.copy(os.path.join(rd, fn), os.path.join(out, f"{tag}_post.spice"))
         try:
             import render
-            render.render(os.path.join(out, "best.gds"), os.path.join(out, "best.png"))
+            render.render(os.path.join(out, f"{tag}.gds"), os.path.join(out, f"{tag}.png"))
         except Exception as e:  # noqa: BLE001
-            print("render skipped:", e)
+            print(f"render {tag} skipped:", e)
     print(json.dumps(summ, indent=1))
 
 

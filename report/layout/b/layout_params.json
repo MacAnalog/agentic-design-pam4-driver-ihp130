@@ -36,6 +36,7 @@
  "out_gap": 1.8,
  "out_layer": "TopMetal1",
  "c_strip": 0,
+ "in_order": 0,
  "bus_trim": 0,
  "out_split": 0,
  "sub_bus": 0,

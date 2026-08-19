@@ -1,4 +1,4 @@
-# Reviewer report — PAM-4 driver DAC (IHP SG13G2): schematic vs v1 / v2 / v3 layouts
+# Reviewer report — PAM-4 driver DAC (IHP SG13G2): schematic vs v1 / v2 / v3 / v4 layouts
 
 Self-contained evidence package for the TCAS-2026 case study #2 (layout/schematic
 co-design through the SpiceXplorer platform, paper Alg. 1). Everything here is
@@ -13,14 +13,15 @@ directly comparable.
 Last build: 2026-08-18, research server (ngspice-45, KLayout 0.30.5, kpex,
 IHP-Open-PDK sg13g2, gdsfactory + ihp-gdsfactory).
 
-## The four tiers
+## The five tiers
 
 | tier | what | where it comes from |
 |---|---|---|
 | (a) schematic | EIC-verified nominal sizing (nx=3, 16 mA/cell, R_C=R_B=50 Ω, R_E=2.5 Ω, C_deg=20 fF, V_casc=3.25 V), no layout | `dut/dut_pam4.spice` + `testbenches/driver_lib.CellParams()` |
 | (b) first-pass layout | the ORIGINAL v1 floorplan (`LayoutParams()` defaults: edge-fed Metal3 input buses, 1.8 µm output-bus gap, full-width buses) with the nominal sizing of (a) | `layout/gen_layout.py` defaults |
 | (c) v2, layout of record | block-local nevergrad loop + RF layout review, 2026-08-09 (`V2_LAYOUT` / `V2_BIASES`) | `layout/gen_layout.py`, `layout/README.md` v2 section |
-| (d) v3, co-designed | accepted point of Alg. 1 run **through `spicexplorer-optimize`** (`sim_engine: layout`), round 2 island s3 trial 38 (`FINAL_LAYOUT` / `FINAL_BIASES`) | `layout/codesign/results/r2/`, `layout/codesign/README.md` |
+| (d) v3, co-designed | accepted point of co-design **round 2** — Alg. 1 run through `spicexplorer-optimize` (`sim_engine: layout`), island s3 trial 38 (`V3_LAYOUT` / `V3_BIASES`) | `layout/codesign/results/r2/`, `layout/codesign/README.md` |
+| (e) v4, co-designed = **layout of record** | accepted point of co-design **round 3** (p/n balance + power made objectives), island s23 trial 30 (`FINAL_LAYOUT` / `FINAL_BIASES`) | `layout/codesign/results/r3/`, `layout/codesign/README.md` |
 
 Note on "v1": the repo's `layout/before_after.png` labels as *v1* the
 notebook-02 optimum on this same first-pass floorplan (nx=2, R_C=70 Ω, 12 mA —
@@ -35,8 +36,11 @@ isolates what the layout alone costs. Both are the same GDS floorplan.
   `dut_pam4_lvs.spice`, "Netlists match" required. Logs per tier in
   `layout/<tier>/signoff/`.
 * **PEX**: kpex 2.5D, **CC** mode (coupling capacitances), tech default sidewall
-  halo 8 µm — the block's default instrument. (`layout/out/pex/metrics_v3_*.json`
-  shows halo 20 and RC mode for v3: −10.07 / −10.78, RC ≡ CC.) The converted
+  halo 8 µm — the block's default instrument. (`layout/out/pex/metrics_v4_*.json`
+  and `metrics_v3_*.json` show halo 20 and RC mode: v4 −10.073 / −10.812,
+  v3 −10.070 / −10.790, RC ≡ CC to four decimals in both. The co-design search
+  runs at halo 20; the halo-8 → halo-20 delta is geometry-dependent and can
+  change sign — see `layout/codesign/README.md` "Instrument note".) The converted
   post-layout netlist the benches run on is `layout/<tier>/dut_pam4_post.spice`.
 * **S-parameters**: `.op` + ngspice's built-in S-parameter analysis (`sp dec 100`,
   ngspice-45; port sources `portnum`/`z0 50`, mixed-mode Sdd21 / Sdd11 / Sdd22
@@ -62,27 +66,27 @@ isolates what the layout alone costs. Both are the same GDS floorplan.
 
 ## Results — all tiers, one table
 
-| metric | spec | paper meas. | (a) schematic | (b) first-pass layout | (c) v2, block-local optimizer | (d) v3, co-designed |
-|---|---|---|---|---|---|---|
-| gain LSB (dB) | ≥ 2.2 | 3.2 | 3.09 | 2.95 | 2.27 | 2.23 |
-| gain MSB (dB) | ≥ 8.2 | 9.2 | 9.06 | 8.92 | 8.25 | 8.20 |
-| DAC weight (dB) | ≥ 5.0 | 6.0 | 5.97 | 5.97 | 5.98 | 5.97 |
-| BW MSB (GHz) | ≥ 50 | 51 | 66.6 | 51.6 | 58.8 | 61.1 |
-| BW LSB (GHz) | ≥ 50 | >67 | 92.7 | 67.6 | 78.9 | 82.4 |
-| S11 ≤ 32 GHz (dB) | ≤ −10 | <−10 | -10.87 | -8.90 | -9.94 | -10.05 |
-| −10 dB edge S11 (GHz) | ≥ 32 | 32 | 36.1 | 27.4 | 31.7 | 32.2 |
-| S22 ≤ 50 GHz (dB) | ≤ −10 | <−10 | -14.75 | -7.97 | -9.24 | -10.72 |
-| −10 dB edge S22 (GHz) | ≥ 50 | 50 | 88.7 | 38.5 | 45.5 | 54.7 |
-| swing diff (Vpp) | ≥ 2.1 | 2.1 | 2.37 | 2.36 | 2.21 | 2.26 |
-| power @ 4 V (mW) | ≤ 192 | 192 | 191.0 | 191.0 | 179.1 | 190.2 |
-| core area (µm²) | — | 11 300 | — | 7374 | 7552 | 6880 |
-| p/n gain imbalance ≤ 48 GHz (dB) | audit | — | 0.00 | 0.02 | 0.03 | 0.05 |
-| p/n phase imbalance ≤ 48 GHz (°) | audit | — | 0.0 | 0.2 | 0.5 | 1.2 |
-| diff→CM conversion ≤ 48 GHz (dBc) | audit | — | < −150 (ideal symmetry) | -52.8 | -46.5 | -39.5 |
-| I_C per emitter finger (mA) | < 3 (model card) | — | 2.67 | 2.67 | 2.50 | 2.65 |
-| 48 GBd eye RLM | — | — | 0.995 | 0.990 | 0.995 | 0.995 |
-| 48 GBd min eye opening (V) | — | — | 0.25 | 0.24 | 0.23 | 0.23 |
-| 48 GBd output swing (Vpp) | — | — | 0.87 | 0.86 | 0.80 | 0.79 |
+| metric | spec | paper meas. | (a) schematic | (b) first-pass layout | (c) v2, block-local optimizer | (d) v3, co-designed | (e) v4, co-designed |
+|---|---|---|---|---|---|---|---|
+| gain LSB (dB) | ≥ 2.2 | 3.2 | 3.09 | 2.95 | 2.27 | 2.23 | 2.27 |
+| gain MSB (dB) | ≥ 8.2 | 9.2 | 9.06 | 8.92 | 8.25 | 8.20 | 8.24 |
+| DAC weight (dB) | ≥ 5.0 | 6.0 | 5.97 | 5.97 | 5.98 | 5.97 | 5.97 |
+| BW MSB (GHz) | ≥ 50 | 51 | 66.6 | 51.6 | 58.8 | 61.1 | 61.1 |
+| BW LSB (GHz) | ≥ 50 | >67 | 92.7 | 67.6 | 78.9 | 82.4 | 82.5 |
+| S11 ≤ 32 GHz (dB) | ≤ −10 | <−10 | -10.87 | -8.90 | -9.94 | -10.05 | -10.03 |
+| −10 dB edge S11 (GHz) | ≥ 32 | 32 | 36.1 | 27.4 | 31.7 | 32.2 | 32.1 |
+| S22 ≤ 50 GHz (dB) | ≤ −10 | <−10 | -14.75 | -7.97 | -9.24 | -10.72 | -10.71 |
+| −10 dB edge S22 (GHz) | ≥ 50 | 50 | 88.7 | 38.5 | 45.5 | 54.7 | 54.6 |
+| swing diff (Vpp) | ≥ 2.1 | 2.1 | 2.37 | 2.36 | 2.21 | 2.26 | 2.24 |
+| power @ 4 V (mW) | ≤ 192 | 192 | 191.0 | 191.0 | 179.1 | 190.2 | 185.0 |
+| core area (µm²) | — | 11 300 | — | 7374 | 7552 | 6880 | 7055 |
+| p/n gain imbalance ≤ 48 GHz (dB) | audit | — | 0.00 | 0.02 | 0.03 | 0.05 | 0.05 |
+| p/n phase imbalance ≤ 48 GHz (°) | audit | — | 0.0 | 0.2 | 0.5 | 1.2 | 1.0 |
+| diff→CM conversion ≤ 48 GHz (dBc) | audit | — | < −150 (ideal symmetry) | -52.8 | -46.5 | -39.5 | -40.9 |
+| I_C per emitter finger (mA) | < 3 (model card) | — | 2.67 | 2.67 | 2.50 | 2.65 | 2.58 |
+| 48 GBd eye RLM | — | — | 0.995 | 0.990 | 0.995 | 0.995 | 0.994 |
+| 48 GBd min eye opening (V) | — | — | 0.25 | 0.24 | 0.23 | 0.23 | 0.23 |
+| 48 GBd output swing (Vpp) | — | — | 0.87 | 0.86 | 0.80 | 0.79 | 0.79 |
 
 | tier | DRC (KLayout, --no_density) | LVS (KLayout) | kpex 2.5D | extracted elements (C / R) | wiring C outp / outn to gnd (fF) |
 |---|---|---|---|---|---|
@@ -90,6 +94,7 @@ isolates what the layout alone costs. Both are the same GDS floorplan.
 | (b) first-pass layout | PASS | PASS | CC, halo 8 µm | 135 / 0 | 14.8 / 15.5 |
 | (c) v2, block-local optimizer | PASS | PASS | CC, halo 8 µm | 131 / 0 | 16.4 / 17.8 |
 | (d) v3, co-designed | PASS | PASS | CC, halo 8 µm | 126 / 0 | 11.8 / 15.0 |
+| (e) v4, co-designed | PASS | PASS | CC, halo 8 µm | 127 / 0 | 11.4 / 14.1 |
 
 `data/metrics.json` / `metrics.csv` hold every scalar (incl. LSB/MSB S11
 separately, edges, per-finger I_C, eye levels); `data/sparams_<tier>.csv`,
@@ -108,13 +113,22 @@ Reading the table:
   (61 % of the reference silicon), at 190 mW. Margins are thin by design — S11
   is device-limited at ≈ −11.4 dB with zero input wiring, S22 floor −14.5 dB
   with zero output wiring (`layout/codesign/README.md`, "Ceiling").
+* **(e)**: co-design round 3 made the p/n balance and the power *objectives*
+  (the hook measures both DAC paths; `J` rewards them). At this instrument v4
+  reads −10.03 / −10.71 dB, 0.047 dB / 0.99° / −40.9 dBc and **185.0 mW** in
+  7055 µm² — every spec still met, balance and power better than v3, area
+  +2.5 %. (At the search instrument, kpex CC halo 20, v4 dominates v3 on both
+  reflections too: −10.073 / −10.812 against −10.070 / −10.790.)
 * **Balance audit** (reviewer question on the asymmetric look of v3): the
   `out_split` option (outn on TopMetal2, outp on TopMetal1) makes the two
-  output risers unequal — 11.8 / 15.0 fF wiring C to ground — which reads as
-  0.05 dB / 1.2° / −39.5 dBc at 48 GHz (v2: 0.03 dB / 0.5° / −46.5 dBc). Both
-  are far inside the ≤ 0.1 dB / ≤ 2° / ≤ −35 dBc audit specs now scored by
-  round 3 (`layout/codesign/project_setup.yaml`); the eye (RLM, openings) does
-  not resolve the difference.
+  output risers unequal — 11.8 / 15.0 fF wiring C to ground in v3 — which read
+  0.05 dB / 1.2° / −39.5 dBc at 48 GHz (v2: 0.03 / 0.5° / −46.5). Round 3 tried
+  the *symmetric* metal options (both buses on TM1 / on TM2 / mirrored) and a
+  p/n-swapped input row order as knobs and **measured them as nulls**; what
+  moved the balance was the per-net C budget (`rc_gap`: outn↔vcc 2.34 → 1.97 fF,
+  wiring C 11.4 / 14.1 fF in v4) and the electrical point, to
+  0.047 dB / 0.99° / −40.9 dBc here and 0.035 dB / 0.64° / −44.5 dBc at halo 20.
+  The eye (RLM, openings) does not resolve any of these differences.
 
 ### 48 GBd PAM-4 eye
 
@@ -124,6 +138,7 @@ Reading the table:
 | (b) first-pass layout (v1 floorplan, nominal sizing) | -449, -173, +101, +380 | 248 / 244 / 255 | 0.990 | 860 |
 | (c) layout of record v2 (block-local optimizer + RF review) | -417, -162, +93, +351 | 231 / 230 / 238 | 0.995 | 797 |
 | (d) co-design accepted point v3 (Alg. 1 through SpiceXplorer) | -415, -160, +93, +351 | 232 / 230 / 238 | 0.995 | 793 |
+| (e) co-design round 3 accepted point v4 (p/n balance objective) | -413, -157, +98, +356 | 235 / 233 / 241 | 0.994 | 794 |
 
 ![eye](figs/fig_eye.png)
 
@@ -138,11 +153,13 @@ saturation value (`fig_dc.png`).
 | (b) first-pass layout (v1 floorplan, nominal sizing) | 117.2 × 62.9 | 7374 | 135 / 0 | 14.8 / 15.5 |
 | (c) layout of record v2 (block-local optimizer + RF review) | 99.6 × 75.8 | 7552 | 131 / 0 | 16.4 / 17.8 |
 | (d) co-design accepted point v3 (Alg. 1 through SpiceXplorer) | 97.6 × 70.5 | 6880 | 126 / 0 | 11.8 / 15.0 |
+| (e) co-design round 3 accepted point v4 (p/n balance objective) | 102.0 × 69.2 | 7055 | 127 / 0 | 11.4 / 14.1 |
 
 ![layouts](figs/fig_layouts.png)
 
 `figs/fig_layout_b_vs_d.*` is the two-panel first-pass vs co-designed
-comparison; `figs/fig_layout_annotated.*` is (d) with **every optimizer knob
+comparison ((b) vs the last tier, now (e)); `figs/fig_layout_annotated.*` is
+(e), the layout of record, with **every optimizer knob
 of `project_setup.yaml`** drawn from the generator's own geometry record on the
 KLayout render (white = layout µm knobs, red = electrical sizing that draws
 geometry, blue = structural options).
