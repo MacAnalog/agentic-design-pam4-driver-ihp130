@@ -140,36 +140,39 @@ density, ground cage, matching dummies) are tracked in
 
 ## Results
 
-| metric (post-layout `pam4`, kpex 2.5D) | paper (meas.) | EIC ref (schem) | v2 (2026-08-09) | **v3 (layout of record)** | spec |
-|---|---|---|---|---|---|
-| LSB / MSB LF gain | 3.2 / 9.2 dB | 3.10 / 9.07 | 2.27 / 8.25 dB | **2.23 / 8.21 dB** | ≥ 2.2 / ≥ 8.2 ✅ |
-| DAC weight | 6.0 dB | 5.97 | 5.98 dB | **5.97 dB** | ≥ 5.0 ✅ |
-| Bandwidth (worst path) | 51–67 GHz | 68.5 | 58.8 GHz | **61.1 GHz** | ≥ 50 ✅ |
-| S11 at 32 GHz | < −10 | −10.87 | −9.94 dB ✗ | **−10.05 dB** | ≤ −10 ✅ |
-| S22 at 50 GHz | < −10 | −14.76 | −9.24 dB ✗ | **−10.72 dB** | ≤ −10 ✅ |
-| Max diff swing | 2.1 Vpp | 2.92 | 2.21 Vpp | **2.26 Vpp** | ≥ 2.1 ✅ |
-| Power | 192 mW | 191 | 179 mW @ 4 V | **190 mW @ 4 V** | ≤ 192 ✅ |
-| 48 GBd PAM-4 eye (200 mV$_{pp}$ in) | Fig. 5 | RLM 0.995, 0.25 V eyes | RLM 0.995, 0.23 V eyes | **RLM 0.995, 0.23 V eyes** | open ✅ |
-| Core area | 0.011 mm² | — | 0.0076 mm² | **0.0069 mm²** (97.6 × 70.5 µm) | — |
+| metric (post-layout `pam4`, kpex 2.5D) | paper (meas.) | EIC ref (schem) | v2 (2026-08-09) | v3 (co-design r2) | **v4 (layout of record)** | spec |
+|---|---|---|---|---|---|---|
+| LSB / MSB LF gain | 3.2 / 9.2 dB | 3.10 / 9.07 | 2.27 / 8.25 dB | 2.23 / 8.20 dB | **2.27 / 8.24 dB** | ≥ 2.2 / ≥ 8.2 ✅ |
+| DAC weight | 6.0 dB | 5.97 | 5.98 dB | 5.97 dB | **5.97 dB** | ≥ 5.0 ✅ |
+| Bandwidth (worst path) | 51–67 GHz | 66.6 | 58.8 GHz | 61.1 GHz | **61.1 GHz** | ≥ 50 ✅ |
+| S11 at 32 GHz | < −10 | −10.87 | −9.94 dB ✗ | −10.05 dB | **−10.03 dB** | ≤ −10 ✅ |
+| S22 at 50 GHz | < −10 | −14.75 | −9.24 dB ✗ | −10.72 dB | **−10.71 dB** | ≤ −10 ✅ |
+| p/n balance ≤ 48 GHz (gain / phase / diff→CM) | — | ideal | 0.03 dB / 0.5° / −46.5 dBc | 0.05 dB / 1.2° / −39.5 dBc | **0.05 dB / 1.0° / −40.9 dBc** | audit |
+| Max diff swing | 2.1 Vpp | 2.37 | 2.21 Vpp | 2.26 Vpp | **2.24 Vpp** | ≥ 2.1 ✅ |
+| Power | 192 mW | 191 | 179 mW @ 4 V | 190 mW @ 4 V | **185 mW @ 4 V** | ≤ 192 ✅ |
+| 48 GBd PAM-4 eye (200 mV$_{pp}$ in) | Fig. 5 | RLM 0.995, 0.25 V eyes | RLM 0.995, 0.23 V eyes | RLM 0.995, 0.23 V eyes | **RLM 0.994, 0.23 V eyes** | open ✅ |
+| Core area | 0.011 mm² | — | 0.0076 mm² | 0.0069 mm² | **0.0071 mm²** (102.0 × 69.2 µm) | — |
 
 S11/S22 are the worst in-band values *including the interpolated 32 / 50 GHz
 band edge* (kpex CC, tech halo 8 µm — the block's default instrument; the
-v2 column is the record re-measured that way, see the v3 section above).
+v2 column is the record re-measured that way, see the v3 section above). The
+co-design search runs at halo 20, where v4 reads −10.073 / −10.812 dB and
+0.035 dB / 0.64° / −44.5 dBc — better than v3 on every one of them.
 Eye metrics are read at the eye centre (`report/build_report.py`; the
-notebooks sample at a fixed phase and read RLM ≈ 0.97). All four tiers —
-schematic, first-pass layout, v2, v3 — side by side with the same instrument,
+notebooks sample at a fixed phase and read RLM ≈ 0.97). All five tiers —
+schematic, first-pass layout, v2, v3, v4 — side by side with the same instrument,
 plus the p/n balance audit and per-tier DRC/LVS/PEX evidence, are in
 [`report/`](report/README.md) (`report/data/tables.md`).
 Both columns through the same `driver_lib` benches (notebook 04 §5):
 
-![48 GBd eyes, all four tiers](report/figs/fig_eye.png)
+![48 GBd eyes, all five tiers](report/figs/fig_eye.png)
 
 ![first-pass vs co-designed layout, KLayout render](report/figs/fig_layout_b_vs_d.png)
 
 ![v2 vs v4 S-parameters](notebooks/report_figs/sparams_v2_v4_post_layout.png)
 
-**S-parameters, all four tiers** (S21 both paths, S11, S22 — schematic /
-first-pass / v2 / v3, `report/`):
+**S-parameters, all five tiers** (S21 both paths, S11, S22 — schematic /
+first-pass / v2 / v3 / v4, `report/`):
 
 ![s-parameters](report/figs/fig_sparams.png)
 
@@ -178,16 +181,16 @@ first-pass / v2 / v3, `report/`):
 ![dc transfer](report/figs/fig_dc.png)
 ![balance](report/figs/fig_balance.png)
 
-**Final pam4 layout — v3, the layout of record** (3 differential cascode
+**Final pam4 layout — v4, the layout of record** (3 differential cascode
 cells summing into shared collector loads; DRC + LVS clean; KLayout render,
 every optimizer knob annotated):
 
-![final layout v3](report/figs/fig_layout_annotated.png)
+![final layout v4](report/figs/fig_layout_annotated.png)
 
 The notebook-03 signoff figures (`notebooks/report_figs/{pam4_layout_final,
 eye_48gbd_pam4,sparams_s21_s11_s22,dc_transfer_dac_levels}.png`) are the
 **v2** layout of record (they run on `layout/out/pex/dut_pam4_best_post.spice`);
-`report/` supersedes them for v3.
+`report/` supersedes them for v3 / v4.
 
 The report plots regenerate with `make report`, the notebook plots from
 `notebooks/03_signoff.py`; the executed
@@ -208,10 +211,10 @@ dut/          three DUT subcircuits (lsb / msb / pam4 2-bit DAC)
 netlists/     static, directly runnable ngspice decks (+ .spiceinit)
 testbenches/  driver_lib.py — netlist-agnostic benches (schematic AND
               post-layout via dut_ref=), run_verify.py, run_eye.py
-layout/       gen_layout.py (parameterized generator, FINAL_LAYOUT = v3,
-              V2_LAYOUT), signoff.py (DRC+LVS, vendored PDK runner),
+layout/       gen_layout.py (parameterized generator, FINAL_LAYOUT = v4,
+              V3_LAYOUT, V2_LAYOUT), signoff.py (DRC+LVS, vendored PDK runner),
               pex_sim.py (kpex), optimize_layout.py (block-local v1/v2 loop),
-              LAYOUT_REVIEW.md, before_after.png (v1 -> v3; _v2 = v1 -> v2),
+              LAYOUT_REVIEW.md, before_after.png (v1 -> v4; _v2/_v3 = v1 -> v2/v3),
               codesign/ (Alg. 1 through spicexplorer-optimize: flow.yaml,
               project_setup.yaml, measure hook, rounds/, results/, figures),
               out/ (v3 netlists, PEX, renders; GDS regenerates)

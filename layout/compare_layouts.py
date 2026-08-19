@@ -81,6 +81,36 @@ ANNOT = {
         ("row compacted:\ngap_x 7->6, cell_gap 6->5\n(shorter summing bus)",
          (0.35, 0.55), (0.045, 0.62)),
     ],
+    "after_v4": [
+        ("center-fed H-tree (v2), MSB rows\ninnermost; cell order M0|M1|L0:\n"
+         "the MSB input bus spans 2 cells,\nnot 3 (S11 −0.2 dB)",
+         (0.50, 0.69), (0.05, 0.94)),
+        ("outn on TopMetal2, outp on TopMetal1;\nper-net bus extents (bus_trim): each\n"
+         "bus covers only its own risers + R_C\n(−16 um TM1, shorter outp||outn run)",
+         (0.60, 0.235), (0.035, 0.115)),
+        ("substrate taps on Metal1 straight\nto the ring — no Metal3 sub bus\n"
+         "under the output risers",
+         (0.628, 0.30), (0.70, 0.13)),
+        ("nx=3 @ 15.9 mA, R_C 46.5, R_E 3.24,\nC_deg 18.5 fF, V_casc 3.31:\n"
+         "found by the platform search\n(160 trials, 4 islands, round 2)",
+         (0.83, 0.55), (0.66, 0.60)),
+        ("cascode-collector tab (c_strip=2)\nkept off the PyCell's M2 emitter\n"
+         "plate; out_gap 6.37 (halo-honest)",
+         (0.285, 0.395), (0.045, 0.50)),
+    ],
+    "after_v2": [
+        ("center-fed H-tree:\nR_B on centreline, LSB buses\nshrink to short stubs,\n"
+         "zero M0/M1 skew", (0.50, 0.885), (0.06, 0.94)),
+        ("Metal4 buses, MSB rows innermost,\n3 um pair gap, Metal2 base drops",
+         (0.62, 0.71), (0.66, 0.90)),
+        ("out_gap 8 um, min-width (1.64) TM1,\nslim risers/stacks, +/-1.5 um "
+         "overhang:\noutput C -7 fF/side -> S22 passes at R_C=50",
+         (0.30, 0.31), (0.035, 0.16)),
+        ("nx=3 HBTs @ 15 mA\n(swing 2.21 ok; S11 closed by\nR_E 3.2 + input fixes)",
+         (0.47, 0.485), (0.63, 0.585)),
+        ("row compacted:\ngap_x 7->6, cell_gap 6->5\n(shorter summing bus)",
+         (0.35, 0.55), (0.045, 0.62)),
+    ],
 }
 
 TITLES = {
@@ -91,9 +121,13 @@ TITLES = {
                  "nx=3, R_C=50 $\\Omega$, 15 mA  |  99.6 x 75.8 um\n"
                  "8 specs on the dec-20 grid: S22 −10.14  swing 2.21  S11 −10.03"
                  "  (band edges: −9.24 / −9.94 ✗)"),
-    "after_v3": ("AFTER — v3, co-designed through the SpiceXplorer platform (Alg. 1)",
+    "after_v3": ("AFTER — v3, co-designed through the SpiceXplorer platform (Alg. 1, round 2)",
                  "nx=3, R_C=46.5 $\\Omega$, 15.9 mA  |  97.6 x 70.5 um (6880 um2)\n"
                  "ALL 8 SPECS at the band edges:  S11 −10.05   S22 −10.72   swing 2.26   190 mW"),
+    "after_v4": ("AFTER — v4, co-designed through the SpiceXplorer platform (Alg. 1, round 3)",
+                 "nx=3, R_C=47.9 $\\Omega$, 15.5 mA  |  102.0 x 69.2 um (7055 um2)\n"
+                 "ALL 8 SPECS at the band edges:  S11 −10.03   S22 −10.71   swing 2.24   185 mW"
+                 "   |  p/n balance 0.047 dB / 0.99 deg / −40.9 dBc"),
 }
 SUPTITLE = {
     "after_v2": "PAM-4 driver layout — original v1 point vs the v2 full-spec resize + RF layout fixes (IHP SG13G2, pam4 DUT)",
