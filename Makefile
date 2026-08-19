@@ -8,6 +8,7 @@
 #   make notebooks  execute all four notebooks (.py -> .ipynb via jupytext)
 #   make codesign   one island of the platform co-design loop (paper Alg. 1)
 #   make report     rebuild the reviewer report (report/: figs, data, layout evidence)
+#   make verify-report  re-run every number of the final results from static decks + DRC/LVS (verification/)
 #   make all        verify + eye + signoff + notebooks
 
 # Machine-specific tool locations live in an untracked local.mk
@@ -27,7 +28,7 @@ RUN       = $(ENV) uv run
 # kpex -> ngspice); the committed result used the default of 8.
 NB_BUDGET ?= 8
 
-.PHONY: all sync verify eye signoff notebooks nb01 nb02 nb03 nb04 codesign report clean
+.PHONY: all sync verify eye signoff notebooks nb01 nb02 nb03 nb04 codesign report verify-report clean
 
 all: verify eye signoff notebooks
 
@@ -73,6 +74,12 @@ REPORT_ARGS ?=
 report:
 	$(RUN) python report/build_report.py $(REPORT_ARGS)
 
+# verification/: plain `ngspice -b` on the static decks + KLayout DRC/LVS + GDS regen,
+# every number compared with verification/expected.json.  VERIFY_ARGS='--tier d --no-eye'
+VERIFY_ARGS ?=
+verify-report:
+	$(RUN) python verification/verify.py $(VERIFY_ARGS)
+
 clean:
-	rm -rf notebooks/nb_opt notebooks/*.ipynb layout/out/signoff report/work
+	rm -rf notebooks/nb_opt notebooks/*.ipynb layout/out/signoff report/work verification/work
 	find . -name __pycache__ -type d -prune -exec rm -rf {} +

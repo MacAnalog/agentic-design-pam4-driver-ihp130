@@ -10,9 +10,10 @@ Pipeline per DUT (lsb | msb | pam4):
   3. post-layout: the kpex netlist converted to ngspice X-cards, same bench
   4. metrics    : LF S21, f3dB, worst S11 <= 32 GHz, P(vcc) — pre vs post
 
-The testbench mirrors ``../testbenches/driver_lib.py`` tb_ac (power-wave
-S21 = 2*Vout/Vsrc into 50 ohm/side, S11 via Zin), adapted to the layout DUT
-port convention (tails + sub are ports; ideal VCCS tails live in the bench).
+The testbench mirrors ``../testbenches/driver_lib.py`` tb_ac (ngspice `sp`
+S-parameter analysis on port sources, 50 ohm/side; Sdd21 / Sdd11 mixed-mode),
+adapted to the layout DUT port convention (tails + sub are ports; ideal VCCS
+tails live in the bench).
 
     uv run python pex_sim.py --dut all                   # -> out/pex_report.yaml
     uv run python pex_sim.py --dut pam4 --mode RC --skip-pex   # reuse existing PEX
@@ -272,7 +273,8 @@ def tb_ac_layout(dut: str, subckt_path: str, subckt_name: str,
                  ports: list[str], *, drive: str = "msb",
                  corner: str = "tt", out_csv: str = "ac.csv",
                  biases: dict | None = None) -> str:
-    """.op + .ac S21/S11 bench around a layout DUT subckt (any port order).
+    """.op + `sp` (ngspice S-parameter analysis) S21/S11 bench around a layout
+    DUT subckt (any port order); Sdd21 / Sdd11 from 4 port sources.
 
     ``biases`` overrides {vcc, vcasc, vcmb, tail_ma} — the electrical
     operating-point knobs for the sizing loop."""
@@ -281,7 +283,7 @@ def tb_ac_layout(dut: str, subckt_path: str, subckt_name: str,
     groups = ["lsb", "msb"] if dut == "pam4" else ["in"]
     if dut != "pam4":
         drive = "in"
-    lines = [f"* layout TB[{dut}] .op/.ac drive={drive}",
+    lines = [f"* layout TB[{dut}] .op/sp drive={drive}",
              f'.include "{subckt_path}"',
              f"Vcc vcc 0 DC {b['vcc']:g}",
              f"Vcasc vcasc 0 DC {b['vcasc']:g}",
@@ -290,18 +292,19 @@ def tb_ac_layout(dut: str, subckt_path: str, subckt_name: str,
              "Vsub sub 0 DC 0"]
     for t in tails:
         lines.append(f"G{t} {t} 0 bias 0 1m")
-    lines.append(f"Rlp outp vcc {Z0:g}")
-    lines.append(f"Rln outn vcc {Z0:g}")
+    # ngspice S-parameter analysis: output pair = ports 3/4, driven input pair = ports 1/2
+    lines.append(f"Vlp outp vcc DC 0 AC 0 portnum 3 z0 {Z0:g}")
+    lines.append(f"Vln outn vcc DC 0 AC 0 portnum 4 z0 {Z0:g}")
     for g in groups:
         tp, tn = (f"{g}p", f"{g}n") if dut == "pam4" else ("inp", "inn")
-        acp = " AC 0.5" if g == drive else ""
-        acn = " AC -0.5" if g == drive else ""
-        lines.append(f"Vs{g}p s{g}p 0 DC {b['vcmb']:g}{acp}")
-        lines.append(f"Vs{g}n s{g}n 0 DC {b['vcmb']:g}{acn}")
+        if g == drive:
+            lines.append(f"Vs{g}p {tp} 0 DC {b['vcmb']:g} AC 1 portnum 1 z0 {Z0:g}")
+            lines.append(f"Vs{g}n {tn} 0 DC {b['vcmb']:g} AC 1 portnum 2 z0 {Z0:g}")
+            continue
+        lines.append(f"Vs{g}p s{g}p 0 DC {b['vcmb']:g}")
+        lines.append(f"Vs{g}n s{g}n 0 DC {b['vcmb']:g}")
         lines.append(f"Rs{g}p s{g}p {tp} {Z0:g}")
         lines.append(f"Rs{g}n s{g}n {tn} {Z0:g}")
-    rp, rn = ((f"{drive}p", f"{drive}n") if dut == "pam4"
-              else ("inp", "inn"))
     lines.append(f"X0 {' '.join(ports)} {subckt_name}")
     lines.append(hbt_lib_line(corner))
     lines.append('.lib "cornerRES.lib" res_typ')
@@ -310,12 +313,9 @@ def tb_ac_layout(dut: str, subckt_path: str, subckt_name: str,
     lines.append(".control")
     lines.append("op")
     lines.append("print v(outp) v(outn) i(Vcc)")
-    lines.append("ac dec 20 1e8 1e11")
-    lines.append("let vodiff = v(outp)-v(outn)")
-    lines.append(f"let vidiff = v({rp})-v({rn})")
-    lines.append("let s21db = db(2*vodiff)")
-    lines.append(f"let zin = vidiff*{2 * Z0:g}/(1-vidiff)")
-    lines.append(f"let s11db = db((zin-{2 * Z0:g})/(zin+{2 * Z0:g}))")
+    lines.append("sp dec 20 1e8 1e11")
+    lines.append("let s21db = db(0.5*(S_3_1 - S_3_2 - S_4_1 + S_4_2))")   # Sdd21
+    lines.append("let s11db = db(0.5*(S_1_1 - S_1_2 - S_2_1 + S_2_2))")   # Sdd11
     lines.append(f"wrdata {out_csv} s21db s11db")
     lines.append(".endc")
     lines.append(".GLOBAL GND")

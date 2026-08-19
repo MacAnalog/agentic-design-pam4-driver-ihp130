@@ -64,8 +64,8 @@ for dut in DUTS:
                   "run_verify.py sweeps 1..70 GHz.", d))
     d = tb_ac(dut, inc(dut), drive=drive, dp=dp)
     decks.append((f"tb_{dut}_op_ac.spice",
-                  "Direct .op + .ac S21/S11 sweep (ngspice-45; fails on "
-                  "ngspice-44, see README).", d))
+                  "Direct .op + ngspice `sp` S-parameter sweep, S21/S11 (Sdd) "
+                  "on port sources (ngspice-45; fails on ngspice-44, see README).", d))
 
 # pam4 extras: LSB-driven path, S22 (tran + ac), swing, eye.
 d, _, _ = tb_sparam("pam4", inc("pam4"), f_hz=1e9, drive="lsb", dp=dp)
@@ -73,14 +73,14 @@ decks.append(("tb_pam4_sparam_lsb_1ghz.spice",
               "S21/S11 tone probe, LSB driven, f=1 GHz.", d))
 d = tb_ac("pam4", inc("pam4"), drive="lsb", dp=dp)
 decks.append(("tb_pam4_op_ac_lsb.spice",
-              "Direct .op + .ac S21/S11 sweep, LSB driven.", d))
+              "Direct .op + `sp` S21/S11 (Sdd) sweep, LSB driven.", d))
 d, _, _ = tb_s22("pam4", inc("pam4"), f_hz=50e9, dp=dp)
 decks.append(("tb_pam4_s22_50ghz.spice",
               "S22 output-reflection tone probe, f=50 GHz (band edge); "
               "run_verify.py sweeps 2..50 GHz.", d))
 d = tb_ac_s22("pam4", inc("pam4"), dp=dp)
 decks.append(("tb_pam4_op_ac_s22.spice",
-              "Direct .op + .ac S22 sweep.", d))
+              "Direct .op + `sp` S22 (Sdd22) sweep on output port sources.", d))
 d, _, _ = tb_sparam("pam4", inc("pam4"), f_hz=1e9, drive="both", dp=dp,
                     vac_mv=1600, settle_periods=4, window_periods=8)
 decks.append(("tb_pam4_swing_1ghz.spice",
@@ -119,7 +119,9 @@ ngspice -b tb_pam4_sparam_msb_1ghz.spice
 {rows}
 
 `tb_*_op_ac*` decks need ngspice-45 (the self-heating VBIC fails .op/.ac on
-ngspice-44 — see ../README.md). All other decks are ngspice-44-safe transient
-ramp-from-0 probes.
+ngspice-44 — see ../README.md); they use ngspice's built-in S-parameter
+analysis (`sp`, port sources `portnum`/`z0 50`, mixed-mode Sdd formed from the
+p/n port pair). All other decks are ngspice-44-safe transient ramp-from-0
+probes (the method-independent cross-check).
 """)
 print("netlists/README.md")
