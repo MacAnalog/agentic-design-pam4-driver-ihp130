@@ -17,8 +17,15 @@ score a large penalty, so the optimizer only ever trades *legal* layouts.
 
     python optimize_layout.py --dut lsb --budget 20 --out-dir opt_out
 
-Same pattern as examples/layout/ihp-sg13g2/5t_ota_gf/optimize_layout.py
-(the 5T-OTA lane), retargeted at the HBT driver and its bandwidth metric.
+Written on the pattern of the platform's 5T-OTA layout optimizer,
+retargeted at the HBT driver and its bandwidth metric. The platform retired
+that script (examples/layout/ihp-sg13g2/5t_ota_gf/optimize_layout.py) on
+2026-09-26 (MacAnalog/spicexplorer-platform#304); its in-loop layout
+optimization is now the examples/layout/ihp-sg13g2/5t_ota_gf/opt/ project
+(`sim_engine: layout`), with DRC/LVS/PEX through spicexplorer-signoff. This
+script imports nothing from the platform: DRC and LVS come from this repo's
+own copy of the runner in pdk_runner/ (through signoff.py), PEX and the
+post-layout bench from pex_sim.py.
 """
 from __future__ import annotations
 
